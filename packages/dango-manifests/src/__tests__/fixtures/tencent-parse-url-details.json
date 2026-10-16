@@ -1,0 +1,32 @@
+{
+  "ret": 0,
+  "msg": "",
+  "data": {
+    "module_list_datas": [
+      {
+        "module_datas": [
+          {
+            "item_data_lists": {
+              "item_datas": [
+                {
+                  "item_id": "",
+                  "item_type": "1",
+                  "item_params": {
+                    "title": "葬送的芙莉莲 第1季[日语版]",
+                    "episode_all": "28",
+                    "cover_year": "2023",
+                    "new_pic_vt": "https://vcover-vt-pic.puui.qpic.cn/vcover_vt_pic/0/mzc00200wo6sr9q1720582916067/0",
+                    "report.cid": "mzc00200wo6sr9q",
+                    "type": "3",
+                    "year": "2023",
+                    "detail_info": "<font color=\"#FF6022\">VIP</font> · 全28集 · 6581"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

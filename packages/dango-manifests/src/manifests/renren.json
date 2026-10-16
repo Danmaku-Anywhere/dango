@@ -7,7 +7,7 @@
       "name": "人人"
     }
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "hosts": ["api.gorafie.com", "static-dm.qwdjapp.com"],
   "search": {
     "inputs": ["q"],
@@ -46,7 +46,7 @@
         }
       }
     ],
-    "output": "[search.data[id and title].{ 'providerIds': { 'seriesId': $string(id) }, 'indexedId': $string(id), 'title': title, 'type': classify ? classify : 'Renren', 'year': $exists(year) ? $number(year) : undefined, 'imageUrl': cover }]"
+    "output": "[search.data[id and title].{ 'providerIds': { 'seriesId': $string(id) }, 'indexedId': $string(id), 'title': title, 'type': classify ? classify : 'Renren', 'year': $match($string(year), /^\\d+$/) ? $number(year) : undefined, 'imageUrl': cover }]"
   },
   "episodes": {
     "inputs": ["seriesId"],
@@ -85,7 +85,7 @@
         }
       }
     ],
-    "output": "[detail.data.episodeList[sid].{ 'providerIds': { 'sid': $string(sid) }, 'indexedId': $string(sid), 'title': title and $length(title) > 0 ? title : ('第' & $string(episodeNo ? episodeNo : 1) & '集'), 'episodeNumber': $exists(episodeNo) ? $number(episodeNo) : undefined }]"
+    "output": "[detail.data.episodeList[sid].{ 'providerIds': { 'sid': $string(sid) }, 'indexedId': $string(sid), 'title': title and $length(title) > 0 ? title : ('第' & $string(episodeNo ? episodeNo : 1) & '集'), 'episodeNumber': $match($string(episodeNo), /^\\d+$/) ? $number(episodeNo) : undefined }]"
   },
   "danmaku": {
     "inputs": ["sid"],

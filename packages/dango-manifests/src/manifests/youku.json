@@ -7,7 +7,7 @@
       "name": "优酷"
     }
   },
-  "version": "0.5.2",
+  "version": "0.5.3",
   "hosts": [
     "search.youku.com",
     "openapi.youku.com",
@@ -48,7 +48,7 @@
         "throttleMs": 100
       }
     ],
-    "output": "[pages.{ 'providerIds': { 'vid': id }, 'indexedId': id, 'title': title, 'episodeNumber': $number(stage), 'imageUrl': thumbnail_v2 }]"
+    "output": "[pages.{ 'providerIds': { 'vid': id }, 'indexedId': id, 'title': title, 'episodeNumber': $match($string(stage), /^\\d+$/) ? $number(stage) : undefined,'imageUrl': thumbnail_v2 }]"
   },
   "danmaku": {
     "inputs": ["vid"],

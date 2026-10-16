@@ -87,7 +87,7 @@ export class ContractRunner extends ManifestRunner {
     opts?: RunOptions
   ): Promise<T | null> {
     const result = await super.runParseUrl<T>(url, extraInputs, opts)
-    if (result !== null) {
+    if (result !== null && result !== undefined) {
       assertValue('parseUrl', zParseUrlOutput, result)
     }
     return result

@@ -8,7 +8,7 @@
       "cookieSet.title": "访问腾讯视频以设置 Cookie"
     }
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "hosts": ["pbaccess.video.qq.com", "dm.video.qq.com"],
   "urlMatch": [
     {
@@ -180,6 +180,6 @@
         }
       }
     ],
-    "output": "{ 'seasonInsert': { 'providerIds': { 'cid': picked.season.item_params.`report.cid` }, 'indexedId': picked.season.item_params.`report.cid`, 'title': picked.season.item_params.title, 'type': $string(picked.season.item_type), 'imageUrl': picked.season.item_params.new_pic_vt, 'episodeCount': picked.season.item_params.episode_all }, 'episodeMeta': $exists(picked.ep) ? { 'providerIds': { 'vid': picked.ep.vid }, 'indexedId': picked.ep.vid, 'title': picked.ep.play_title, 'episodeNumber': $match(picked.ep.title, /^\\d+$/) ? $number(picked.ep.title) : (picked.ep.title and picked.ep.title != '' ? picked.ep.title : undefined), 'alternativeTitle': picked.ep.union_title and picked.ep.union_title != '' ? [picked.ep.union_title] : undefined, 'imageUrl': picked.ep.image_url } : undefined }"
+    "output": "($sp := picked.season.item_params; $sp.`report.cid` and $sp.title ? { 'seasonInsert': { 'providerIds': { 'cid': $sp.`report.cid` }, 'indexedId': $sp.`report.cid`, 'title': $sp.title, 'type': $string(picked.season.item_type), 'imageUrl': $sp.new_pic_vt, 'episodeCount': $match($string($sp.episode_all), /^\\d+$/) ? $number($sp.episode_all) : undefined }, 'episodeMeta': $exists(picked.ep) ? { 'providerIds': { 'vid': picked.ep.vid }, 'indexedId': picked.ep.vid, 'title': picked.ep.play_title, 'episodeNumber': $match(picked.ep.title, /^\\d+$/) ? $number(picked.ep.title) : (picked.ep.title and picked.ep.title != '' ? picked.ep.title : undefined), 'alternativeTitle': picked.ep.union_title and picked.ep.union_title != '' ? [picked.ep.union_title] : undefined, 'imageUrl': picked.ep.image_url } : undefined } : undefined)"
   }
 }

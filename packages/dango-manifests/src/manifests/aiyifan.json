@@ -7,7 +7,7 @@
       "name": "爱壹帆"
     }
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "hosts": ["www.yfsp.tv", "rankv21.tripdata.app", "m10.yfsp.tv"],
   "search": {
     "inputs": ["q"],
@@ -48,7 +48,7 @@
         }
       }
     ],
-    "output": "[search.data.info.result[contxt and title].{ 'providerIds': { 'vid': contxt }, 'indexedId': contxt, 'title': title, 'type': atypeName ? atypeName : 'Aiyifan', 'year': postTime ? $number($substring(postTime, 0, 4)) : undefined, 'imageUrl': imgPath }]"
+    "output": "[search.data.info.result[contxt and title].{ 'providerIds': { 'vid': contxt }, 'indexedId': contxt, 'title': title, 'type': atypeName ? atypeName : 'Aiyifan', 'year': ($y := $substring($string(postTime), 0, 4); $match($y, /^\\d+$/) ? $number($y) : undefined), 'imageUrl': imgPath }]"
   },
   "episodes": {
     "inputs": ["vid"],
@@ -89,7 +89,7 @@
         }
       }
     ],
-    "output": "[playlist.data.info.playList[key].{ 'providerIds': { 'epKey': key }, 'indexedId': key, 'title': name and $length(name) > 0 ? name : ('第' & $string($$.i + 1) & '集'), 'episodeNumber': $exists(id) ? $number(id) : undefined }]"
+    "output": "[playlist.data.info.playList[key].{ 'providerIds': { 'epKey': key }, 'indexedId': key, 'title': name and $length(name) > 0 ? name : ('第' & $string($$.i + 1) & '集'), 'episodeNumber': $match($string(id), /^\\d+$/) ? $number(id) : undefined }]"
   },
   "danmaku": {
     "inputs": ["epKey"],

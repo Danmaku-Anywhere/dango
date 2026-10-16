@@ -1,0 +1,60 @@
+{
+  "ret": 0,
+  "msg": "",
+  "data": {
+    "module_list_datas": [
+      {
+        "module_datas": [
+          {
+            "item_data_lists": {
+              "item_datas": [
+                {
+                  "item_id": "l4100oh6xb3",
+                  "item_type": "1",
+                  "item_params": {
+                    "cid": "mzc00200wo6sr9q",
+                    "vid": "l4100oh6xb3",
+                    "title": "1",
+                    "play_title": "葬送的芙莉莲 第1季[日语版] 第01话",
+                    "union_title": "葬送的芙莉莲_01",
+                    "image_url": "https://vpic-cover.puui.qpic.cn/l4100oh6xb3/l4100oh6xb3_1720661556_hz.jpg/496",
+                    "is_trailer": "0",
+                    "duration": "1559"
+                  }
+                },
+                {
+                  "item_id": "w41009twnvy",
+                  "item_type": "1",
+                  "item_params": {
+                    "cid": "mzc00200wo6sr9q",
+                    "vid": "w41009twnvy",
+                    "title": "2",
+                    "play_title": "葬送的芙莉莲 第1季[日语版] 第02话",
+                    "union_title": "葬送的芙莉莲_02",
+                    "image_url": "https://vpic-cover.puui.qpic.cn/w41009twnvy/w41009twnvy_1720662548_hz.jpg/496",
+                    "is_trailer": "0",
+                    "duration": "1560"
+                  }
+                },
+                {
+                  "item_id": "l41006q7mlv",
+                  "item_type": "1",
+                  "item_params": {
+                    "cid": "mzc00200wo6sr9q",
+                    "vid": "l41006q7mlv",
+                    "title": "3",
+                    "play_title": "葬送的芙莉莲 第1季[日语版] 第03话",
+                    "union_title": "葬送的芙莉莲_03",
+                    "image_url": "https://vpic-cover.puui.qpic.cn/l41006q7mlv/l41006q7mlv_1720662710_hz.jpg/496",
+                    "is_trailer": "0",
+                    "duration": "1469"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

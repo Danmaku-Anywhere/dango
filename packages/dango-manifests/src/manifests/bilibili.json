@@ -13,7 +13,7 @@
       "configSchema.properties.includeUserUploads.description": "搜索时一并返回用户投稿（UGC）视频，而不仅是官方番剧库。默认关闭：UGC 结果较杂，且多为切片。"
     }
   },
-  "version": "0.7.0",
+  "version": "0.7.1",
   "hosts": ["api.bilibili.com"],
   "urlMatch": [
     {
@@ -310,7 +310,7 @@
           }
         }
       ],
-      "output": "{ 'seasonInsert': { 'providerIds': { 'seasonId': season.result.season_id }, 'indexedId': $string(season.result.season_id), 'title': $replace(season.result.title, /<[^>]+>/, ''), 'type': $string(season.result.type), 'imageUrl': season.result.cover, 'episodeCount': $count(season.result.episodes) }, 'episodeMeta': $exists(picked.ep) ? { 'providerIds': { 'cid': picked.ep.cid, 'aid': picked.ep.aid, 'bvid': picked.ep.bvid, 'epid': picked.ep.id }, 'indexedId': $string(picked.ep.cid), 'title': picked.ep.long_title and picked.ep.long_title != '' ? picked.ep.long_title : picked.ep.show_title, 'episodeNumber': $match(picked.ep.title, /^\\d+$/) ? $number(picked.ep.title) : (picked.ep.title and picked.ep.title != '' ? picked.ep.title : undefined), 'imageUrl': picked.ep.cover, 'externalLink': picked.ep.link } : undefined }"
+      "output": "$exists(season.result.season_id) and $exists(season.result.title) ? { 'seasonInsert': { 'providerIds': { 'seasonId': season.result.season_id }, 'indexedId': $string(season.result.season_id), 'title': $replace(season.result.title, /<[^>]+>/, ''), 'type': $string(season.result.type), 'imageUrl': season.result.cover, 'episodeCount': $count(season.result.episodes) }, 'episodeMeta': $exists(picked.ep) ? { 'providerIds': { 'cid': picked.ep.cid, 'aid': picked.ep.aid, 'bvid': picked.ep.bvid, 'epid': picked.ep.id }, 'indexedId': $string(picked.ep.cid), 'title': picked.ep.long_title and picked.ep.long_title != '' ? picked.ep.long_title : picked.ep.show_title, 'episodeNumber': $match(picked.ep.title, /^\\d+$/) ? $number(picked.ep.title) : (picked.ep.title and picked.ep.title != '' ? picked.ep.title : undefined), 'imageUrl': picked.ep.cover, 'externalLink': picked.ep.link } : undefined } : undefined"
     },
     {
       "when": "$exists(bvid) or $exists(aid)",
@@ -328,7 +328,7 @@
           }
         }
       ],
-      "output": "($d := view.data; $eps := $d.ugc_season.sections.episodes; { 'seasonInsert': { 'providerIds': { 'bvid': $d.bvid, 'aid': $d.aid }, 'indexedId': $d.bvid, 'title': $d.title, 'type': $d.tname ? $d.tname : undefined, 'imageUrl': 'https:' & $replace($d.pic, /^https?:/, ''), 'episodeCount': $exists($d.ugc_season) ? $count($d.ugc_season.sections.episodes) : $count($d.pages) }, 'episodeMeta': { 'providerIds': { 'cid': $d.cid, 'aid': $d.aid, 'bvid': $d.bvid }, 'indexedId': $string($d.cid), 'title': $d.title, 'episodeNumber': $exists($eps) ? ($eps#$i[bvid = $d.bvid].($i + 1))[0] : 1, 'imageUrl': 'https:' & $replace($d.pic, /^https?:/, ''), 'externalLink': 'https://www.bilibili.com/video/' & $d.bvid } })"
+      "output": "($d := view.data; $eps := $d.ugc_season.sections.episodes; $exists($d.bvid) and $exists($d.title) ? { 'seasonInsert': { 'providerIds': { 'bvid': $d.bvid, 'aid': $d.aid }, 'indexedId': $d.bvid, 'title': $d.title, 'type': $d.tname ? $d.tname : undefined, 'imageUrl': 'https:' & $replace($d.pic, /^https?:/, ''), 'episodeCount': $exists($d.ugc_season) ? $count($d.ugc_season.sections.episodes) : $count($d.pages) }, 'episodeMeta': { 'providerIds': { 'cid': $d.cid, 'aid': $d.aid, 'bvid': $d.bvid }, 'indexedId': $string($d.cid), 'title': $d.title, 'episodeNumber': $exists($eps) ? ($eps#$i[bvid = $d.bvid].($i + 1))[0] : 1, 'imageUrl': 'https:' & $replace($d.pic, /^https?:/, ''), 'externalLink': 'https://www.bilibili.com/video/' & $d.bvid } } : undefined)"
     }
   ]
 }

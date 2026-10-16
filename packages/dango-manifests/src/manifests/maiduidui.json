@@ -7,7 +7,7 @@
       "name": "埋堆堆"
     }
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "hosts": ["mob.mddcloud.com.cn"],
   "search": {
     "inputs": ["q"],
@@ -38,7 +38,7 @@
         }
       }
     ],
-    "output": "[search.data[typeName in ['剧集', '电影', '综艺']].($tn := typeName; vodList.{ 'providerIds': { 'vodUuid': uuid }, 'indexedId': uuid, 'title': name, 'type': $tn, 'year': $exists(year) ? $number(year) : undefined, 'imageUrl': coverImage, 'episodeCount': undefined })]"
+    "output": "[search.data[typeName in ['剧集', '电影', '综艺']].($tn := typeName; vodList.{ 'providerIds': { 'vodUuid': uuid }, 'indexedId': uuid, 'title': name, 'type': $tn, 'year': $match($string(year), /^\\d+$/) ? $number(year) : undefined, 'imageUrl': coverImage, 'episodeCount': undefined })]"
   },
   "episodes": {
     "inputs": ["vodUuid"],
@@ -69,7 +69,7 @@
         }
       }
     ],
-    "output": "[ep.data.($idx := $; { 'providerIds': { 'sactionUuid': uuid, 'vodUuid': $$.vodUuid, 'durationSec': $exists(duration) ? $number(duration) : 0 }, 'indexedId': uuid, 'title': name ? name : ('第' & $string(sort) & '集'), 'episodeNumber': $exists(sort) ? $number(sort) : undefined })]"
+    "output": "[ep.data.($idx := $; { 'providerIds': { 'sactionUuid': uuid, 'vodUuid': $$.vodUuid, 'durationSec': $match($string(duration), /^\\d+$/) ? $number(duration) : 0 }, 'indexedId': uuid, 'title': name ? name : ('第' & $string(sort) & '集'), 'episodeNumber': $match($string(sort), /^\\d+$/) ? $number(sort) : undefined })]"
   },
   "danmaku": {
     "inputs": ["sactionUuid", "vodUuid", "durationSec"],

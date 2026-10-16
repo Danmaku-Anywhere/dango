@@ -13,6 +13,7 @@ import builtinBilibili from '../manifests/bilibili.json' with { type: 'json' }
 import bangumiFixture from './fixtures/bilibili-search-bangumi.json' with { type: 'json' }
 import ftFixture from './fixtures/bilibili-search-ft.json' with { type: 'json' }
 import seasonFixture from './fixtures/bilibili-season.json' with { type: 'json' }
+import seasonNotFoundFixture from './fixtures/bilibili-season-notfound.json' with { type: 'json' }
 import ugcSearchFixture from './fixtures/bilibili-search-video.json' with { type: 'json' }
 import ugcSeasonViewFixture from './fixtures/bilibili-ugc-season-view.json' with { type: 'json' }
 import ugcViewFixture from './fixtures/bilibili-ugc-view.json' with { type: 'json' }
@@ -528,6 +529,37 @@ describe('bilibili manifest', () => {
 
     expect(result?.seasonInsert.indexedId).toBe('41410')
     expect(result?.episodeMeta).toBeUndefined()
+  })
+
+  it.each([
+    'https://www.bilibili.com/bangumi/play/ss99999999',
+    'https://www.bilibili.com/bangumi/play/ep99999999',
+  ])('parseUrl yields no result for a missing season: %s', async (url) => {
+    const { fetcher } = mockFetcher({
+      'https://api.bilibili.com/pgc/view/web/season': {
+        body: JSON.stringify(seasonNotFoundFixture),
+      },
+    })
+    const runner = createContractRunner(builtinBilibili, { fetcher })
+
+    const result = await runner.runParseUrl(url)
+
+    expect(result ?? undefined).toBeUndefined()
+  })
+
+  it('parseUrl yields no result for a missing UGC video', async () => {
+    const { fetcher } = mockFetcher({
+      'https://api.bilibili.com/x/web-interface/view': {
+        body: JSON.stringify({ code: -404, message: '啥都木有', ttl: 1 }),
+      },
+    })
+    const runner = createContractRunner(builtinBilibili, { fetcher })
+
+    const result = await runner.runParseUrl(
+      'https://www.bilibili.com/video/BV1xx411c7mD'
+    )
+
+    expect(result ?? undefined).toBeUndefined()
   })
 
   it('search omits the UGC request when includeUserUploads is false', async () => {

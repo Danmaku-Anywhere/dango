@@ -3,6 +3,21 @@ import { zManifest } from '@mr-quin/dango'
 import { describe, expect, it } from 'bun:test'
 import builtinTencent from '../manifests/tencent.json' with { type: 'json' }
 import { ContractRunner, createContractRunner } from './contractRunner.js'
+import parseUrlDetails from './fixtures/tencent-parse-url-details.json' with { type: 'json' }
+import parseUrlEpisodes from './fixtures/tencent-parse-url-episodes.json' with { type: 'json' }
+import parseUrlNotFound from './fixtures/tencent-parse-url-notfound.json' with { type: 'json' }
+
+const pageServerUrl =
+  'https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2'
+
+function pageServerHandler(details: unknown, episodes: unknown) {
+  return (_url: string, init: unknown): MockResponse => {
+    const { body } = init as { body: string }
+    const pageId = JSON.parse(body).pageParams.page_id
+    const payload = pageId === 'vsite_episode_list' ? episodes : details
+    return { body: JSON.stringify(payload) }
+  }
+}
 
 interface MockResponse {
   status?: number
@@ -393,6 +408,75 @@ describe('tencent manifest', () => {
     }).runDanmaku({ vid })
 
     expect(mapResult).toEqual(projectionResult)
+  })
+
+  it('parseUrl resolves a cover URL to the season and the matching episode', async () => {
+    const { fetcher, calls } = mockFetcher({
+      [pageServerUrl]: pageServerHandler(parseUrlDetails, parseUrlEpisodes),
+    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
+
+    const result = await runner.runParseUrl(
+      'https://v.qq.com/x/cover/mzc00200wo6sr9q/l4100oh6xb3.html'
+    )
+
+    expect(calls).toHaveLength(2)
+    expect(result).toEqual({
+      seasonInsert: {
+        providerIds: { cid: 'mzc00200wo6sr9q' },
+        indexedId: 'mzc00200wo6sr9q',
+        title: '葬送的芙莉莲 第1季[日语版]',
+        type: '1',
+        imageUrl:
+          'https://vcover-vt-pic.puui.qpic.cn/vcover_vt_pic/0/mzc00200wo6sr9q1720582916067/0',
+        episodeCount: 28,
+      },
+      episodeMeta: {
+        providerIds: { vid: 'l4100oh6xb3' },
+        indexedId: 'l4100oh6xb3',
+        title: '葬送的芙莉莲 第1季[日语版] 第01话',
+        episodeNumber: 1,
+        alternativeTitle: ['葬送的芙莉莲_01'],
+        imageUrl:
+          'https://vpic-cover.puui.qpic.cn/l4100oh6xb3/l4100oh6xb3_1720661556_hz.jpg/496',
+      },
+    })
+  })
+
+  it.each(['', 'N/A'])(
+    'parseUrl omits episodeCount when episode_all is %p',
+    async (episodeAll) => {
+      const details = structuredClone(parseUrlDetails)
+      details.data.module_list_datas[0].module_datas[0].item_data_lists.item_datas[0].item_params.episode_all =
+        episodeAll
+      const { fetcher } = mockFetcher({
+        [pageServerUrl]: pageServerHandler(details, parseUrlEpisodes),
+      })
+      const runner = createContractRunner(builtinTencent, { fetcher })
+
+      const result = (await runner.runParseUrl(
+        'https://v.qq.com/x/cover/mzc00200wo6sr9q/l4100oh6xb3.html'
+      )) as { seasonInsert: Record<string, unknown> } | null
+
+      expect(result?.seasonInsert.title).toBe('葬送的芙莉莲 第1季[日语版]')
+      expect(result?.seasonInsert).not.toHaveProperty('episodeCount')
+    }
+  )
+
+  it('parseUrl yields no result for a cid Tencent does not know', async () => {
+    const { fetcher } = mockFetcher({
+      [pageServerUrl]: pageServerHandler(parseUrlNotFound, {
+        ret: 0,
+        msg: '',
+      }),
+    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
+
+    const result = await runner.runParseUrl(
+      'https://v.qq.com/x/cover/mzc00200zzzzzzz/a0000000000.html'
+    )
+
+    expect(result ?? undefined).toBeUndefined()
   })
 
   it('loginProbe returns true when the details endpoint succeeds', async () => {

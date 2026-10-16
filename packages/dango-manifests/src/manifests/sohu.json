@@ -7,7 +7,7 @@
       "name": "搜狐视频"
     }
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "hosts": ["m.so.tv.sohu.com", "api.tv.sohu.com", "api.danmu.tv.sohu.com"],
   "search": {
     "inputs": ["q"],
@@ -26,7 +26,7 @@
         }
       }
     ],
-    "output": "[search.data.items[aid and album_name and site = 1 and (is_trailer ? is_trailer != 1 : true) and (corner_mark.text ? corner_mark.text != '预告' : true)].($metaTxt := [meta.txt][$contains($, '|')][0]; $type := $metaTxt ? $trim($split($metaTxt, '|')[0]) : 'Sohu'; { 'providerIds': { 'aid': $string(aid) }, 'indexedId': $string(aid), 'title': $replace(album_name, /<<<|>>>/, ''), 'type': $type, 'year': year ? $number(year) : undefined, 'imageUrl': ver_big_pic, 'episodeCount': total_video_count > 0 ? total_video_count : undefined })]"
+    "output": "[search.data.items[aid and album_name and site = 1 and (is_trailer ? is_trailer != 1 : true) and (corner_mark.text ? corner_mark.text != '预告' : true)].($metaTxt := [meta.txt][$contains($, '|')][0]; $type := $metaTxt ? $trim($split($metaTxt, '|')[0]) : 'Sohu'; { 'providerIds': { 'aid': $string(aid) }, 'indexedId': $string(aid), 'title': $replace(album_name, /<<<|>>>/, ''), 'type': $type, 'year': year and $match($string(year), /^\\d+$/) ? $number(year) : undefined, 'imageUrl': ver_big_pic, 'episodeCount': total_video_count > 0 ? total_video_count : undefined })]"
   },
   "episodes": {
     "inputs": ["aid"],
@@ -42,7 +42,7 @@
         }
       }
     ],
-    "output": "[album.data.videos[$exists(vid)].{ 'providerIds': { 'vid': $string(vid), 'aid': $string(aid), 'durationSec': total_duration > 0 ? $number(total_duration) : 0 }, 'indexedId': $string(vid), 'title': video_name ? video_name : ('第' & $string(albumAbsoluteOrder ? albumAbsoluteOrder : 1) & '集'), 'episodeNumber': albumAbsoluteOrder ? $number(albumAbsoluteOrder) : undefined }]"
+    "output": "[album.data.videos[$exists(vid)].{ 'providerIds': { 'vid': $string(vid), 'aid': $string(aid), 'durationSec': total_duration > 0 ? $number(total_duration) : 0 }, 'indexedId': $string(vid), 'title': video_name ? video_name : ('第' & $string(albumAbsoluteOrder ? albumAbsoluteOrder : 1) & '集'), 'episodeNumber': albumAbsoluteOrder and $match($string(albumAbsoluteOrder), /^\\d+$/) ? $number(albumAbsoluteOrder) : undefined }]"
   },
   "danmaku": {
     "inputs": ["vid", "aid", "durationSec"],

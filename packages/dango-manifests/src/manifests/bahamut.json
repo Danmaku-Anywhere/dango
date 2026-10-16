@@ -7,7 +7,7 @@
       "name": "巴哈姆特"
     }
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "hosts": ["api.gamer.com.tw"],
   "search": {
     "inputs": ["q"],
@@ -43,7 +43,7 @@
         }
       }
     ],
-    "output": "[video.data.anime.episodes.*[$exists(videoSn)].{ 'providerIds': { 'videoSn': $string(videoSn) }, 'indexedId': $string(videoSn), 'title': '第' & $string(episode) & '集', 'episodeNumber': $exists(episode) ? $number(episode) : undefined }]"
+    "output": "[video.data.anime.episodes.*[$exists(videoSn)].{ 'providerIds': { 'videoSn': $string(videoSn) }, 'indexedId': $string(videoSn), 'title': '第' & $string(episode) & '集', 'episodeNumber': $match($string(episode), /^\\d+$/) ? $number(episode) : undefined }]"
   },
   "danmaku": {
     "inputs": ["videoSn"],
