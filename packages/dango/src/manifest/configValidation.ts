@@ -12,6 +12,7 @@ export type ConfigIssueCode =
   | 'pattern'
   | 'badPattern'
   | 'format'
+  | 'urlScheme'
   | 'minimum'
   | 'maximum'
   | 'minItems'
@@ -224,12 +225,14 @@ function compilePattern(pattern: string): RegExp | undefined {
   return tryRegExp(pattern, 'u') ?? tryRegExp(pattern, '')
 }
 
+const WEB_SCHEMES = ['http', 'https']
+
 // URL.canParse is missing from browsers some hosts still support.
-function isUrl(value: string): boolean {
+function parseUrl(value: string): URL | undefined {
   try {
-    return new URL(value).href.length > 0
+    return new URL(value)
   } catch {
-    return false
+    return undefined
   }
 }
 
@@ -262,8 +265,31 @@ function validateString(
       out.add(path, 'pattern', `Must match ${pattern}`, { pattern })
     }
   }
-  if ((schema.format === 'uri' || schema.format === 'url') && !isUrl(value)) {
-    out.add(path, 'format', 'Not a valid URL', { format: schema.format })
+  if (schema.format === 'uri' || schema.format === 'url') {
+    validateUrl(schema.format, value, path, out)
+  }
+}
+
+// Every URL field a manifest declares is an HTTP endpoint, so `uri` and `url`
+// accept web URLs only.
+function validateUrl(
+  format: string,
+  value: string,
+  path: Path,
+  out: Collector
+): void {
+  const url = parseUrl(value)
+  if (!url) {
+    out.add(path, 'format', 'Not a valid URL', { format })
+    return
+  }
+  const scheme = url.protocol.replace(/:$/, '')
+  if (!WEB_SCHEMES.includes(scheme)) {
+    out.add(path, 'urlScheme', 'Must start with http:// or https://', {
+      format,
+      scheme,
+      allowed: WEB_SCHEMES,
+    })
   }
 }
 
@@ -341,7 +367,8 @@ function validateObject(
  * `required`, `anyOf` key alternatives, general `oneOf`/`anyOf` subschemas,
  * `properties`, `items`, `additionalProperties: false`, `minLength`,
  * `maxLength`, `pattern` (reported as `badPattern` when it is not a regex),
- * `format: 'uri' | 'url'`, `minimum`, `maximum`,
+ * `format: 'uri' | 'url'` (http and https only; another scheme is reported
+ * as `urlScheme`), `minimum`, `maximum`,
  * `minItems` and `maxItems`. Any other keyword, such as `allOf`, `$ref` or
  * another `format`, is ignored rather than reported, so a schema that relies
  * on one accepts values it would otherwise reject. `undefined`, `null` and

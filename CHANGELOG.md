@@ -15,8 +15,18 @@ The engine version and the manifest `apiVersion` are tracked independently.
 
 ### Added
 
+- `@mr-quin/dango`: `validateConfig` reports `urlScheme` for a `format: 'uri'`
+  or `'url'` value that parses as a URL but is not `http` or `https`
+  (`ftp://…`, `javascript:…`, `localhost:8080`). `params` carries `format`,
+  the offending `scheme` and `allowed` (`['http', 'https']`). Text that does
+  not parse as a URL is still `format`.
+
 ### Changed
 
+- **BREAKING:** `@mr-quin/dango`: `validateConfig` no longer accepts a
+  `format: 'uri'` or `'url'` value with a scheme other than `http` or `https`;
+  it reports `urlScheme`. Hosts that switch on `ConfigIssueCode` need a case
+  for it.
 - `bun run health` also runs `season`, `parseUrl` (from a `parseUrl` URL in
   `health-queries.json`) and the login probe where a manifest declares them,
   and checks search, episodes, season and parseUrl results against
@@ -50,6 +60,11 @@ The engine version and the manifest `apiVersion` are tracked independently.
   and sohu (each `0.5.0` → `0.5.1`). The same applies to the search `year` of
   renren, aiyifan, maiduidui and sohu, and to the maiduidui `durationSec`,
   which falls back to `0`.
+- `@mr-quin/dango-manifests`: the dandanplay `baseUrl` setting declares
+  `format: 'uri'`, so a host that validates config rejects "not a url",
+  `ftp://…` and `javascript:…` when the source is saved instead of failing at
+  search with a host-not-allowed error. It is the only URL field in the
+  catalog. (dandanplay manifest `0.6.0` → `0.6.1`.)
 
 ### Security
 

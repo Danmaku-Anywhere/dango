@@ -23,7 +23,7 @@
       "configSchema.properties.chConvert.oneOf.2.title": "转换成繁体"
     }
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "hosts": ["*"],
   "configSchema": {
     "type": "object",
@@ -34,6 +34,7 @@
     "properties": {
       "baseUrl": {
         "type": "string",
+        "format": "uri",
         "title": "Base URL",
         "description": "Root of a DanDanPlay-compatible API, such as a proxy or a self-hosted server. Leave empty to call the official https://api.dandanplay.net, which needs an App ID and App Secret."
       },

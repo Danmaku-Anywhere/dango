@@ -14,7 +14,7 @@ const dandanplay: ConfigSchema = {
   type: 'object',
   anyOf: [{ required: ['baseUrl'] }, { required: ['appId', 'appSecret'] }],
   properties: {
-    baseUrl: { type: 'string' },
+    baseUrl: { type: 'string', format: 'uri' },
     appId: { type: 'string' },
     appSecret: { type: 'string' },
     auth: {
@@ -110,9 +110,9 @@ describe('validateConfig', () => {
   })
 
   it('tells integers from other numbers', () => {
-    expect(codes(dandanplay, { baseUrl: 'x', chConvert: 1.5 })).toEqual([
-      ['chConvert', 'type'],
-    ])
+    expect(
+      codes(dandanplay, { baseUrl: 'https://x.example', chConvert: 1.5 })
+    ).toEqual([['chConvert', 'type']])
     expect(codes({ type: 'number' }, Number.NaN)).toEqual([['', 'type']])
     expect(codes({ type: 'number' }, 1.5)).toEqual([])
   })
@@ -179,6 +179,78 @@ describe('validateConfig', () => {
     expect(
       codes(schema, { short: 'ab', code: 'ok', url: 'https://a.example' })
     ).toEqual([])
+  })
+
+  describe('URL formats', () => {
+    const url: ConfigSchema = { type: 'string', format: 'uri' }
+
+    it('accepts http and https URLs, any case, with ports and paths', () => {
+      for (const value of [
+        'http://localhost:8080',
+        'https://api.example.com/ddp/',
+        'HTTPS://Example.com',
+      ]) {
+        expect(codes(url, value)).toEqual([])
+      }
+    })
+
+    it('reports text that is not a URL as format', () => {
+      for (const value of [
+        'not a url',
+        '//host/path',
+        'http://',
+        '/relative',
+      ]) {
+        expect(codes(url, value)).toEqual([['', 'format']])
+      }
+    })
+
+    it('reports a URL with another scheme as urlScheme', () => {
+      for (const value of [
+        'ftp://files.example.com',
+        'javascript:alert(1)',
+        'localhost:8080',
+        'file:///etc/passwd',
+      ]) {
+        expect(codes(url, value)).toEqual([['', 'urlScheme']])
+      }
+    })
+
+    it('describes the scheme so a host can translate the issue', () => {
+      expect(validateConfig(url, 'ftp://files.example.com')).toEqual([
+        {
+          path: [],
+          code: 'urlScheme',
+          message: 'Must start with http:// or https://',
+          params: { format: 'uri', scheme: 'ftp', allowed: ['http', 'https'] },
+        },
+      ])
+    })
+
+    it('treats format url like uri', () => {
+      const schema: ConfigSchema = { type: 'string', format: 'url' }
+      expect(codes(schema, 'javascript:alert(1)')).toEqual([['', 'urlScheme']])
+      expect(codes(schema, 'not a url')).toEqual([['', 'format']])
+    })
+
+    it('treats an empty value as not set', () => {
+      expect(codes(url, '')).toEqual([])
+    })
+
+    it('rejects a bad dandanplay base URL at its path', () => {
+      expect(codes(dandanplay, { baseUrl: 'not a url' })).toEqual([
+        ['baseUrl', 'format'],
+      ])
+      expect(codes(dandanplay, { baseUrl: 'ftp://x.example' })).toEqual([
+        ['baseUrl', 'urlScheme'],
+      ])
+      expect(codes(dandanplay, { baseUrl: 'javascript:alert(1)' })).toEqual([
+        ['baseUrl', 'urlScheme'],
+      ])
+      expect(
+        codes(dandanplay, { baseUrl: 'https://proxy.example/ddp' })
+      ).toEqual([])
+    })
   })
 
   it('matches a pattern with Unicode semantics', () => {

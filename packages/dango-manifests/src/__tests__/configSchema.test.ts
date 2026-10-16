@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { validateConfig, type ConfigSchema } from '@mr-quin/dango'
 import { describe, expect, it } from 'bun:test'
 
 /**
@@ -35,6 +36,20 @@ function collectEnumFields(node: unknown, path: string, out: [string, Json][]) {
     }
   }
   collectEnumFields(node.items, `${path}.items`, out)
+}
+
+function collectUrlFields(node: unknown, path: string, out: [string, Json][]) {
+  if (!isRecord(node)) return
+  if (isRecord(node.properties)) {
+    for (const [key, child] of Object.entries(node.properties)) {
+      const at = `${path}.properties.${key}`
+      if (isRecord(child) && child.type === 'string' && /url|uri/i.test(key)) {
+        out.push([at, child])
+      }
+      collectUrlFields(child, at, out)
+    }
+  }
+  collectUrlFields(node.items, `${path}.items`, out)
 }
 
 function resolvePath(root: Json, path: string): unknown {
@@ -74,6 +89,17 @@ describe('manifest configSchema display', () => {
         }
       })
 
+      it('declares a URL format on every URL field', () => {
+        const fields: [string, Json][] = []
+        collectUrlFields(manifest.configSchema, 'configSchema', fields)
+        for (const [path, field] of fields) {
+          expect({ path, format: field.format }).toEqual({
+            path,
+            format: 'uri',
+          })
+        }
+      })
+
       it('only translates strings the manifest has', () => {
         const locales = isRecord(manifest.locales) ? manifest.locales : {}
         for (const [tag, map] of Object.entries(locales)) {
@@ -88,4 +114,32 @@ describe('manifest configSchema display', () => {
       })
     })
   }
+})
+
+describe('dandanplay baseUrl', () => {
+  const dandanplay = loadManifests().find((m) => m.id === 'dandanplay')
+  const schema = dandanplay?.configSchema as ConfigSchema
+
+  function issues(baseUrl: string) {
+    return validateConfig(schema, { baseUrl }).map((issue) => [
+      issue.path.join('.'),
+      issue.code,
+    ])
+  }
+
+  it('accepts http and https servers', () => {
+    expect(issues('https://api.example.com/ddp')).toEqual([])
+    expect(issues('http://192.168.1.10:8000')).toEqual([])
+  })
+
+  it('rejects text that is not a URL', () => {
+    expect(issues('not a url')).toEqual([['baseUrl', 'format']])
+  })
+
+  it.each(['ftp://files.example.com', 'javascript:alert(1)', 'file:///x'])(
+    'rejects the scheme in %s',
+    (baseUrl) => {
+      expect(issues(baseUrl)).toEqual([['baseUrl', 'urlScheme']])
+    }
+  )
 })
