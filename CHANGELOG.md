@@ -17,11 +17,39 @@ The engine version and the manifest `apiVersion` are tracked independently.
 
 ### Changed
 
+- `bun run health` also runs `season`, `parseUrl` (from a `parseUrl` URL in
+  `health-queries.json`) and the login probe where a manifest declares them,
+  and checks search, episodes, season and parseUrl results against
+  `zSearchRow`, `zEpisodeRow`, `zSeasonRow` and `zParseUrlOutput`. A row a host
+  would reject reports as DRIFT.
+
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- `@mr-quin/dango-manifests`: tencent `parseUrl` failed output validation for
+  every cover link, because `episodeCount` was Tencent's string (`"28"`).
+  It is now a number when upstream sends an integer string and omitted
+  otherwise (movies and trailers send `""`). A cid Tencent no longer knows
+  produced `{ seasonInsert: { providerIds: {} } }` with no `indexedId` or
+  `title`; the pipeline now yields no result. (tencent manifest `0.5.0` →
+  `0.5.1`.)
+- `@mr-quin/dango-manifests`: bilibili `parseUrl` had the same half-empty
+  result for a missing season (`ss99999999`, `ep99999999`) or a missing
+  user-upload video; it now yields no result. (bilibili manifest `0.7.0` →
+  `0.7.1`.)
+- `@mr-quin/dango-manifests`: migu search rows carried `year: null` when the
+  upstream year was absent or blank; the key is omitted, and a non-numeric year
+  is dropped instead of throwing. (migu manifest `0.5.1` → `0.5.2`.)
+- `@mr-quin/dango-manifests`: `$number()` on an empty or non-numeric upstream
+  string throws and failed the whole call. A special episode (`"SP"`, `""`)
+  now has no `episodeNumber` and the rest of the list is returned: bahamut
+  (`0.5.0` → `0.5.1`), youku (`0.5.2` → `0.5.3`), renren, aiyifan, maiduidui
+  and sohu (each `0.5.0` → `0.5.1`). The same applies to the search `year` of
+  renren, aiyifan, maiduidui and sohu, and to the maiduidui `durationSec`,
+  which falls back to `0`.
 
 ### Security
 

@@ -1,7 +1,10 @@
 {
   "aiyifan": { "query": "延禧攻略" },
   "bahamut": { "query": "鬼滅之刃" },
-  "bilibili": { "query": "葬送的芙莉莲" },
+  "bilibili": {
+    "query": "葬送的芙莉莲",
+    "parseUrl": "https://www.bilibili.com/bangumi/play/ep508405"
+  },
   "dandanplay": {
     "query": "葬送的芙莉莲",
     "config": { "baseUrl": "https://api.danmaku-staging.weeblify.app/ddp" }
@@ -13,6 +16,9 @@
   "migu": { "query": "流浪地球" },
   "renren": { "query": "老友记" },
   "sohu": { "query": "小欢喜" },
-  "tencent": { "query": "庆余年" },
+  "tencent": {
+    "query": "庆余年",
+    "parseUrl": "https://v.qq.com/x/cover/mzc00200wo6sr9q/l4100oh6xb3.html"
+  },
   "youku": { "query": "长月烬明", "minDanmaku": 0 }
 }

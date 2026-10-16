@@ -1,7 +1,13 @@
 /**
  * Live manifest health probe. Runs the shipped catalog against the real
- * provider APIs (search → episodes → danmaku, whichever stages a manifest
- * declares) and reports OK / DRIFT / BROKEN / BLOCKED per manifest.
+ * provider APIs (search → episodes → danmaku, plus season, parseUrl and the
+ * login probe, whichever stages a manifest declares) and reports OK / DRIFT /
+ * BROKEN / BLOCKED per manifest. Search, episodes, season and parseUrl results
+ * are also checked against the engine's output row schemas, so a row a host
+ * would reject shows up as DRIFT.
+ *
+ * parseUrl needs a `parseUrl` URL in health-queries.json; the login probe runs
+ * without a session, so it only has to return a boolean.
  *
  * Usage:
  *   bun run health                  # sweep the whole catalog
@@ -15,7 +21,15 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { type Manifest, ManifestRunner, zManifest } from '@mr-quin/dango'
+import {
+  type Manifest,
+  ManifestRunner,
+  zEpisodeRow,
+  zManifest,
+  zParseUrlOutput,
+  zSearchRow,
+  zSeasonRow,
+} from '@mr-quin/dango'
 import { classifyThrow, type Diagnostics } from './classifyThrow.js'
 import { realFetcher } from './realFetcher.js'
 
@@ -48,6 +62,7 @@ interface QueryFixture {
   query: string
   minSearch?: number
   minDanmaku?: number
+  parseUrl?: string
   config?: Record<string, unknown>
 }
 
@@ -88,6 +103,7 @@ interface StageResult {
   attempted: boolean
   verdict: StageVerdict
   count: number | null
+  label?: string
   note: string
   value: unknown
   diagnostics?: Diagnostics
@@ -104,10 +120,51 @@ function notAttempted(capable: boolean, note = ''): StageResult {
   }
 }
 
+interface RowSchema {
+  safeParse(value: unknown): { success: boolean; error?: { message: string } }
+}
+
+function schemaViolation(
+  stageName: string,
+  rows: unknown[],
+  schema: RowSchema
+): string | undefined {
+  let failures = 0
+  let first = ''
+  for (const [index, row] of rows.entries()) {
+    const parsed = schema.safeParse(row)
+    if (!parsed.success) {
+      failures += 1
+      if (failures === 1) {
+        first = `row ${index}: ${parsed.error?.message ?? 'invalid'}`
+      }
+    }
+  }
+  if (failures === 0) {
+    return undefined
+  }
+  const message = first.replace(/\s+/g, ' ').slice(0, 160)
+  return `${stageName} ${failures}/${rows.length} row(s) violate the output contract (${message})`
+}
+
+function stageFailure(stageName: string, err: unknown): StageResult {
+  const classified = classifyThrow(err)
+  return {
+    capable: true,
+    attempted: true,
+    verdict: classified.verdict,
+    count: null,
+    note: `${stageName}: ${classified.note}`,
+    value: undefined,
+    diagnostics: classified.diagnostics,
+  }
+}
+
 async function runStage(
   stageName: string,
   run: () => Promise<unknown>,
-  min: number
+  min: number,
+  rowSchema?: RowSchema
 ): Promise<StageResult> {
   try {
     const result = await run()
@@ -131,25 +188,80 @@ async function runStage(
         value: result,
       }
     }
+    const violation = rowSchema
+      ? schemaViolation(stageName, result, rowSchema)
+      : undefined
+    return {
+      capable: true,
+      attempted: true,
+      verdict: violation ? 'drift' : 'ok',
+      count: result.length,
+      note: violation ?? '',
+      value: result,
+    }
+  } catch (err) {
+    return stageFailure(stageName, err)
+  }
+}
+
+async function runObjectStage(
+  stageName: string,
+  run: () => Promise<unknown>,
+  schema: RowSchema
+): Promise<StageResult> {
+  try {
+    const result = await run()
+    if (result === null || result === undefined) {
+      return {
+        capable: true,
+        attempted: true,
+        verdict: 'drift',
+        count: 0,
+        note: `${stageName} returned no result`,
+        value: result,
+      }
+    }
+    const violation = schemaViolation(stageName, [result], schema)
+    return {
+      capable: true,
+      attempted: true,
+      verdict: violation ? 'drift' : 'ok',
+      count: 1,
+      note: violation ?? '',
+      value: result,
+    }
+  } catch (err) {
+    return stageFailure(stageName, err)
+  }
+}
+
+/** A logged-out probe may legitimately answer false; it only has to answer. */
+async function runLoginProbeStage(
+  run: () => Promise<unknown>
+): Promise<StageResult> {
+  try {
+    const result = await run()
+    if (typeof result !== 'boolean') {
+      return {
+        capable: true,
+        attempted: true,
+        verdict: 'drift',
+        count: null,
+        note: `loginProbe returned ${typeof result}, want boolean`,
+        value: result,
+      }
+    }
     return {
       capable: true,
       attempted: true,
       verdict: 'ok',
-      count: result.length,
+      count: null,
+      label: result ? 'in' : 'out',
       note: '',
       value: result,
     }
   } catch (err) {
-    const classified = classifyThrow(err)
-    return {
-      capable: true,
-      attempted: true,
-      verdict: classified.verdict,
-      count: null,
-      note: `${stageName}: ${classified.note}`,
-      value: undefined,
-      diagnostics: classified.diagnostics,
-    }
+    return stageFailure('loginProbe', err)
   }
 }
 
@@ -158,6 +270,9 @@ interface ManifestReport {
   search: StageResult
   episodes: StageResult
   danmaku: StageResult
+  season: StageResult
+  parseUrl: StageResult
+  loginProbe: StageResult
   verdict: 'OK' | 'DRIFT' | 'BROKEN' | 'BLOCKED' | 'SKIPPED'
   note: string
   /** Set only when the whole manifest run threw outside a stage (e.g. loading it). */
@@ -203,6 +318,9 @@ async function runManifest(
   const hasSearch = runner.hasSearch()
   const hasEpisodes = runner.hasEpisodes()
   const hasDanmaku = runner.hasDanmaku()
+  const hasSeason = runner.hasSeason()
+  const hasParseUrl = runner.hasParseUrl()
+  const hasLoginProbe = runner.hasLoginProbe()
 
   const query = cliQueryOverride ?? fixture?.query
 
@@ -212,6 +330,9 @@ async function runManifest(
       search: notAttempted(true, 'no query'),
       episodes: notAttempted(hasEpisodes, 'no query'),
       danmaku: notAttempted(hasDanmaku, 'no query'),
+      season: notAttempted(hasSeason, 'no query'),
+      parseUrl: notAttempted(hasParseUrl, 'no query'),
+      loginProbe: notAttempted(hasLoginProbe, 'no query'),
       verdict: 'SKIPPED',
       note: 'no query',
     }
@@ -234,7 +355,8 @@ async function runManifest(
           { ...config, [inputName]: query },
           { ...runOpts, signal: AbortSignal.timeout(TIMEOUT_MS) }
         ),
-      minSearch
+      minSearch,
+      zSearchRow
     )
     if (Array.isArray(search.value) && search.value.length > 0) {
       firstSearchRow = search.value[0]
@@ -259,11 +381,58 @@ async function runManifest(
             signal: AbortSignal.timeout(TIMEOUT_MS),
           }
         ),
-      1
+      1,
+      zEpisodeRow
     )
     if (Array.isArray(episodes.value) && episodes.value.length > 0) {
       firstEpisodeRow = episodes.value[0]
     }
+    await sleep(STAGE_DELAY_MS)
+  }
+
+  let season = notAttempted(
+    hasSeason,
+    hasSeason ? 'no search row to thread' : ''
+  )
+
+  if (hasSeason && firstSearchRow !== undefined) {
+    season = await runObjectStage(
+      'season',
+      () =>
+        runner.runSeason(
+          { ...config, ...rowInputs(firstSearchRow) },
+          { ...runOpts, signal: AbortSignal.timeout(TIMEOUT_MS) }
+        ),
+      zSeasonRow
+    )
+    await sleep(STAGE_DELAY_MS)
+  }
+
+  let parseUrl = notAttempted(hasParseUrl, hasParseUrl ? 'no parseUrl url' : '')
+
+  if (hasParseUrl && fixture?.parseUrl !== undefined) {
+    const pageUrl = fixture.parseUrl
+    parseUrl = await runObjectStage(
+      'parseUrl',
+      () =>
+        runner.runParseUrl(pageUrl, config, {
+          ...runOpts,
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        }),
+      zParseUrlOutput
+    )
+    await sleep(STAGE_DELAY_MS)
+  }
+
+  let loginProbe = notAttempted(hasLoginProbe)
+
+  if (hasLoginProbe) {
+    loginProbe = await runLoginProbeStage(() =>
+      runner.runLoginProbe(config, {
+        ...runOpts,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      })
+    )
     await sleep(STAGE_DELAY_MS)
   }
 
@@ -288,12 +457,15 @@ async function runManifest(
     )
   }
 
-  const stages = [search, episodes, danmaku]
+  const stages = [search, episodes, danmaku, season, parseUrl, loginProbe]
   return {
     id: entry.id,
     search,
     episodes,
     danmaku,
+    season,
+    parseUrl,
+    loginProbe,
     verdict: overallVerdict(stages),
     note: worstStage(stages).note,
   }
@@ -306,7 +478,7 @@ function renderStage(stage: StageResult): string {
   if (stage.verdict === 'broken' || stage.verdict === 'blocked') {
     return 'x'
   }
-  return String(stage.count ?? 0)
+  return stage.label ?? String(stage.count ?? 0)
 }
 
 function pad(str: string, width: number): string {
@@ -319,6 +491,9 @@ function printTable(reports: ManifestReport[]): void {
     'search',
     'episodes',
     'danmaku',
+    'season',
+    'parseUrl',
+    'login',
     'verdict',
     'note',
   ]
@@ -327,6 +502,9 @@ function printTable(reports: ManifestReport[]): void {
     renderStage(r.search),
     renderStage(r.episodes),
     renderStage(r.danmaku),
+    renderStage(r.season),
+    renderStage(r.parseUrl),
+    renderStage(r.loginProbe),
     r.verdict,
     r.note,
   ])
@@ -375,6 +553,9 @@ function printDiagnostics(reports: ManifestReport[]): void {
       ['search', r.search],
       ['episodes', r.episodes],
       ['danmaku', r.danmaku],
+      ['season', r.season],
+      ['parseUrl', r.parseUrl],
+      ['loginProbe', r.loginProbe],
     ]
     for (const [stageName, stage] of stages) {
       if (stage.verdict === 'broken' && stage.diagnostics) {
@@ -427,6 +608,9 @@ async function main(): Promise<void> {
         search: notAttempted(false),
         episodes: notAttempted(false),
         danmaku: notAttempted(false),
+        season: notAttempted(false),
+        parseUrl: notAttempted(false),
+        loginProbe: notAttempted(false),
         verdict: classified.verdict.toUpperCase() as 'BROKEN' | 'BLOCKED',
         note: `manifest run crashed: ${classified.note}`,
         runDiagnostics: classified.diagnostics,

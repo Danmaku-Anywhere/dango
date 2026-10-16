@@ -150,6 +150,9 @@ Top-level fields stay the source / fallback language (English here), so a manife
 - **URLs in manifests are JSONata expressions**, not raw strings. String literals must be wrapped in single quotes: `'https://...'`. Forgetting the quotes makes `https` look like a variable.
 - **`$sortedQueryString` for canonical query strings.** Raw concat of user input into a query string breaks when the input contains `&`, `=`, or `?`. The helper URL-encodes each value; pair it with signing helpers for sign-then-send flows.
 - **JSON imports need `with { type: 'json' }`** under NodeNext module mode.
+- **Never `$number()` an upstream string unguarded.** It throws on `""`, `"SP"` and other non-numbers and fails the whole call, not just the row. Use `$match($string(x), /^\\d+$/) ? $number(x) : undefined` (the JSON file needs the doubled backslash). `episodeNumber` may also be a string, `year` and `episodeCount` may not.
+- **A pipeline that finds nothing should output `undefined`.** For `parseUrl`, a missing season or video must not produce a `seasonInsert` without `indexedId` and `title`; guard the whole object.
+- **`bun run health`** runs search, episodes, danmaku, season, parseUrl and the login probe live and validates rows against the engine's output schemas. `parseUrl` needs a URL in `scripts/health-queries.json`.
 - **No engine reimplementation here.** If a test fails because of dango behavior, fix dango.
 
 ## Adding a manifest
