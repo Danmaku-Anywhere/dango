@@ -47,26 +47,46 @@
     "inputs": ["cid"],
     "steps": [
       {
-        "type": "forEach",
-        "id": "pages",
-        "in": "$range(0, 5)",
-        "as": "page",
+        "type": "http",
+        "id": "first",
         "request": {
           "method": "POST",
           "url": "'https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2'",
           "headers": { "Content-Type": "'application/json'" },
-          "body": "{ 'has_cache': 1, 'pageParams': { 'cid': $string(cid), 'lid': '0', 'vid': '', 'req_from': 'web_mobile', 'page_type': 'detail_operation', 'page_id': 'vsite_episode_list', 'id_type': '1', 'page_size': '100', 'page_context': 'episode_begin=' & $string(page * 100 + 1) & '&episode_end=' & $string((page + 1) * 100) & '&episode_step=100' } }",
+          "body": "{ 'has_cache': 1, 'pageParams': { 'cid': $string(cid), 'lid': '0', 'vid': '', 'req_from': 'web_mobile', 'page_type': 'detail_operation', 'page_id': 'vsite_episode_list', 'id_type': '1', 'page_size': '100', 'page_context': '' } }",
+          "rewriteHeaders": {
+            "Origin": "'https://v.qq.com'",
+            "Referer": "'https://v.qq.com/'"
+          }
+        }
+      },
+      {
+        "type": "assign",
+        "id": "tabs",
+        "values": {
+          "rest": "($t := first.data.module_list_datas[0].module_datas[0].module_params.tabs; $t ? [$jsonParse($t)[[1..20]].page_context] : [])"
+        }
+      },
+      {
+        "type": "forEach",
+        "id": "pages",
+        "in": "tabs.rest",
+        "as": "pageContext",
+        "request": {
+          "method": "POST",
+          "url": "'https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2'",
+          "headers": { "Content-Type": "'application/json'" },
+          "body": "{ 'has_cache': 1, 'pageParams': { 'cid': $string(cid), 'lid': '0', 'vid': '', 'req_from': 'web_mobile', 'page_type': 'detail_operation', 'page_id': 'vsite_episode_list', 'id_type': '1', 'page_size': '100', 'page_context': pageContext } }",
           "rewriteHeaders": {
             "Origin": "'https://v.qq.com'",
             "Referer": "'https://v.qq.com/'"
           }
         },
-        "collect": "[data.module_list_datas[0].module_datas[0].item_data_lists.item_datas[item_params.is_trailer != '1'].item_params]",
-        "breakOn": "$count($) < 100",
+        "collect": "[data.module_list_datas[0].module_datas[0].item_data_lists.item_datas.item_params]",
         "throttleMs": 100
       }
     ],
-    "output": "[pages.{ 'providerIds': { 'vid': vid, 'cid': cid }, 'indexedId': vid, 'title': play_title, 'episodeNumber': $match(title, /^\\d+$/) ? $number(title) : (title and title != '' ? title : undefined), 'alternativeTitle': union_title and union_title != '' ? [union_title] : undefined, 'imageUrl': image_url }]"
+    "output": "[$distinct($append([first.data.module_list_datas[0].module_datas[0].item_data_lists.item_datas.item_params], pages))[$not(is_trailer = '1')].{ 'providerIds': { 'vid': vid, 'cid': cid }, 'indexedId': vid, 'title': play_title, 'episodeNumber': $match(title, /^\\d+$/) ? $number(title) : (title and title != '' ? title : undefined), 'alternativeTitle': union_title and union_title != '' ? [union_title] : undefined, 'imageUrl': image_url }]"
   },
   "danmaku": {
     "inputs": ["vid"],
@@ -153,22 +173,42 @@
         }
       },
       {
-        "type": "forEach",
-        "id": "pages",
-        "in": "$range(0, 5)",
-        "as": "page",
+        "type": "http",
+        "id": "first",
         "request": {
           "method": "POST",
           "url": "'https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2'",
           "headers": { "Content-Type": "'application/json'" },
-          "body": "{ 'has_cache': 1, 'pageParams': { 'cid': cid, 'lid': '0', 'vid': '', 'req_from': 'web_mobile', 'page_type': 'detail_operation', 'page_id': 'vsite_episode_list', 'id_type': '1', 'page_size': '100', 'page_context': 'episode_begin=' & $string(page * 100 + 1) & '&episode_end=' & $string((page + 1) * 100) & '&episode_step=100' } }",
+          "body": "{ 'has_cache': 1, 'pageParams': { 'cid': cid, 'lid': '0', 'vid': '', 'req_from': 'web_mobile', 'page_type': 'detail_operation', 'page_id': 'vsite_episode_list', 'id_type': '1', 'page_size': '100', 'page_context': '' } }",
+          "rewriteHeaders": {
+            "Origin": "'https://v.qq.com'",
+            "Referer": "'https://v.qq.com/'"
+          }
+        }
+      },
+      {
+        "type": "assign",
+        "id": "tabs",
+        "values": {
+          "rest": "($t := first.data.module_list_datas[0].module_datas[0].module_params.tabs; $t ? [$jsonParse($t)[[1..20]].page_context] : [])"
+        }
+      },
+      {
+        "type": "forEach",
+        "id": "pages",
+        "in": "tabs.rest",
+        "as": "pageContext",
+        "request": {
+          "method": "POST",
+          "url": "'https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2'",
+          "headers": { "Content-Type": "'application/json'" },
+          "body": "{ 'has_cache': 1, 'pageParams': { 'cid': cid, 'lid': '0', 'vid': '', 'req_from': 'web_mobile', 'page_type': 'detail_operation', 'page_id': 'vsite_episode_list', 'id_type': '1', 'page_size': '100', 'page_context': pageContext } }",
           "rewriteHeaders": {
             "Origin": "'https://v.qq.com'",
             "Referer": "'https://v.qq.com/'"
           }
         },
-        "collect": "[data.module_list_datas[0].module_datas[0].item_data_lists.item_datas[item_params.is_trailer != '1'].item_params]",
-        "breakOn": "$count($) < 100",
+        "collect": "[data.module_list_datas[0].module_datas[0].item_data_lists.item_datas.item_params]",
         "throttleMs": 100
       },
       {
@@ -176,7 +216,7 @@
         "id": "picked",
         "values": {
           "season": "details.data.module_list_datas[0].module_datas[0].item_data_lists.item_datas[0]",
-          "ep": "($v := vid; pages[vid = $v])"
+          "ep": "($v := vid; $distinct($append([first.data.module_list_datas[0].module_datas[0].item_data_lists.item_datas.item_params], pages))[vid = $v and $not(is_trailer = '1')][0])"
         }
       }
     ],

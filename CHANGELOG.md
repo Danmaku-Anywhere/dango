@@ -46,6 +46,18 @@ The engine version and the manifest `apiVersion` are tracked independently.
   produced `{ seasonInsert: { providerIds: {} } }` with no `indexedId` or
   `title`; the pipeline now yields no result. (tencent manifest `0.5.0` →
   `0.5.1`.)
+- `@mr-quin/dango-manifests`: tencent `episodes` and `parseUrl` could stop at
+  the first 100 items of a cover. Pages were requested with an
+  `episode_begin` / `episode_end` page context, which Tencent ignores for some
+  covers and answers with the first page again. A show with extras
+  (地球超新鲜第二季, 119 items) listed up to 第9期, each item up to five
+  times, and `parseUrl` failed for an episode past item 100. With the
+  duplicates, `parseUrl` also threw (JSONata `T0410`) for an episode on the
+  first page. Both pipelines now request each later page with the page
+  context Tencent lists in the first page's `tabs` (up to 20 more pages), and
+  a trailer on a full page no longer ends the list early. An item listed
+  twice appears once, and an item with no `is_trailer` field is kept. (Part
+  of tencent manifest `0.5.1`.)
 - `@mr-quin/dango-manifests`: bilibili `parseUrl` had the same half-empty
   result for a missing season (`ss99999999`, `ep99999999`) or a missing
   user-upload video; it now yields no result. (bilibili manifest `0.7.0` →
