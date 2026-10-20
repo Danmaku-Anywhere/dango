@@ -132,6 +132,41 @@ function makeEpisodePage(start: number, count: number) {
   }
 }
 
+// Tencent answers the first page for any page_context it does not
+// recognize, and lists the page_context of every page in the first page's
+// module_params.tabs. Only those contexts select a later page.
+function pagedEpisodeList(total: number, trailers: number[] = []) {
+  const pageCount = Math.ceil(total / 100)
+  const tabs = Array.from({ length: pageCount }, (_, i) => ({
+    begin: i * 100 + 1,
+    end: Math.min(total, (i + 1) * 100),
+    page_context: `cid=mzc00200qkxg2td&page_num=${i}&page_size=100&req_type=6`,
+  }))
+  return (_url: string, init: unknown): MockResponse => {
+    const { body } = init as { body: string }
+    const { page_id, page_context } = JSON.parse(body).pageParams
+    if (page_id !== 'vsite_episode_list') {
+      return { body: JSON.stringify(parseUrlDetails) }
+    }
+    const pageNum = Math.max(
+      0,
+      tabs.findIndex((tab) => tab.page_context === page_context)
+    )
+    const start = pageNum * 100 + 1
+    const page = makeEpisodePage(start, Math.min(100, total - start + 1))
+    const module = page.data.module_list_datas[0].module_datas[0]
+    for (const item of module.item_data_lists.item_datas) {
+      if (trailers.includes(Number(item.item_params.title))) {
+        item.item_params.is_trailer = '1'
+      }
+    }
+    if (pageCount > 1) {
+      Object.assign(module, { module_params: { tabs: JSON.stringify(tabs) } })
+    }
+    return { body: JSON.stringify(page) }
+  }
+}
+
 const danmakuBase = {
   segment_start: 0,
   segment_span: 30000,
@@ -264,26 +299,11 @@ describe('tencent manifest', () => {
     expect(result[0].providerIds.cid).toBe('fallback-1')
   })
 
-  it('paginates episodes and stops on partial page via breakOn', async () => {
-    let pageCalls = 0
+  it('fetches every page Tencent lists in tabs', async () => {
     const { fetcher, calls } = mockFetcher({
-      'https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2':
-        () => {
-          // Two full pages (100), then a partial page (45). breakOn fires on
-          // the partial page and the loop stops without fetching a 4th page.
-          const pageIdx = pageCalls++
-          if (pageIdx === 0)
-            return { body: JSON.stringify(makeEpisodePage(1, 100)) }
-          if (pageIdx === 1)
-            return { body: JSON.stringify(makeEpisodePage(101, 100)) }
-          if (pageIdx === 2)
-            return { body: JSON.stringify(makeEpisodePage(201, 45)) }
-          throw new Error('unexpected extra page call')
-        },
+      [pageServerUrl]: pagedEpisodeList(245),
     })
-    const runner = createContractRunner(builtinTencent, {
-      fetcher,
-    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
 
     const result = (await runner.runEpisodes({
       cid: 'mzc00200qkxg2td',
@@ -295,43 +315,102 @@ describe('tencent manifest', () => {
     }>
 
     expect(calls).toHaveLength(3)
-    expect(result).toHaveLength(245)
-    expect(result[0].providerIds.vid).toBe('vid_1')
-    expect(result[244].providerIds.vid).toBe('vid_245')
-    // play_title -> title; title (ordinal) -> episodeNumber; union_title -> alternativeTitle
+    expect(result.map((ep) => ep.providerIds.vid)).toEqual(
+      Array.from({ length: 245 }, (_, i) => `vid_${i + 1}`)
+    )
     expect(result[0].title).toBe('测试剧 第1话')
     expect(result[0].episodeNumber).toBe(1)
     expect(result[0].alternativeTitle).toEqual(['测试剧_1'])
   })
 
-  it('handles a series whose total fits in one (full) page', async () => {
-    // Edge case: a series returning exactly 100 episodes on page 0 should
-    // fetch page 1 (to discover it's empty), then stop. The looped-back
-    // detection happens via the empty-page → breakOn fires path.
-    let pageCalls = 0
+  it('returns items past the first 100 without repeating any', async () => {
     const { fetcher, calls } = mockFetcher({
-      'https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2':
-        () => {
-          const pageIdx = pageCalls++
-          if (pageIdx === 0) {
-            return { body: JSON.stringify(makeEpisodePage(1, 100)) }
-          }
-          // Page 1 has 0 episodes, Tencent returns either empty or looped
-          // content past the end. Empty → breakOn ($count = 0) fires → stop.
-          return { body: JSON.stringify(makeEpisodePage(101, 0)) }
-        },
+      [pageServerUrl]: pagedEpisodeList(119),
     })
-    const runner = createContractRunner(builtinTencent, {
-      fetcher,
-    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
 
     const result = (await runner.runEpisodes({
       cid: 'mzc00200qkxg2td',
     })) as Array<{ providerIds: { vid: string } }>
 
     expect(calls).toHaveLength(2)
-    expect(result).toHaveLength(100)
+    expect(result.map((ep) => ep.providerIds.vid)).toEqual(
+      Array.from({ length: 119 }, (_, i) => `vid_${i + 1}`)
+    )
   })
+
+  it('drops trailers from every page', async () => {
+    const { fetcher, calls } = mockFetcher({
+      [pageServerUrl]: pagedEpisodeList(150, [50]),
+    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
+
+    const result = (await runner.runEpisodes({
+      cid: 'mzc00200qkxg2td',
+    })) as Array<{ providerIds: { vid: string } }>
+
+    expect(calls).toHaveLength(2)
+    expect(result).toHaveLength(149)
+    expect(result.map((ep) => ep.providerIds.vid)).not.toContain('vid_50')
+    expect(result.at(-1)?.providerIds.vid).toBe('vid_150')
+  })
+
+  it('lists each item once when a tab answers with the first page again', async () => {
+    const page = makeEpisodePage(1, 3)
+    Object.assign(page.data.module_list_datas[0].module_datas[0], {
+      module_params: {
+        tabs: JSON.stringify([{ page_context: 'a' }, { page_context: '' }]),
+      },
+    })
+    const { fetcher } = mockFetcher({
+      [pageServerUrl]: { body: JSON.stringify(page) },
+    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
+
+    const result = (await runner.runEpisodes({
+      cid: 'mzc00200qkxg2td',
+    })) as Array<{ providerIds: { vid: string } }>
+
+    expect(result.map((ep) => ep.providerIds.vid)).toEqual([
+      'vid_1',
+      'vid_2',
+      'vid_3',
+    ])
+  })
+
+  it('keeps an item that has no is_trailer field', async () => {
+    const page = makeEpisodePage(1, 2)
+    const items = page.data.module_list_datas[0].module_datas[0].item_data_lists
+      .item_datas as Array<{ item_params: Record<string, unknown> }>
+    delete items[0].item_params.is_trailer
+    const { fetcher } = mockFetcher({
+      [pageServerUrl]: { body: JSON.stringify(page) },
+    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
+
+    const result = (await runner.runEpisodes({
+      cid: 'mzc00200qkxg2td',
+    })) as Array<{ providerIds: { vid: string } }>
+
+    expect(result.map((ep) => ep.providerIds.vid)).toEqual(['vid_1', 'vid_2'])
+  })
+
+  it.each([28, 100])(
+    'makes one request for a list of %p items, which has no tabs',
+    async (total) => {
+      const { fetcher, calls } = mockFetcher({
+        [pageServerUrl]: pagedEpisodeList(total),
+      })
+      const runner = createContractRunner(builtinTencent, { fetcher })
+
+      const result = (await runner.runEpisodes({
+        cid: 'mzc00200qkxg2td',
+      })) as unknown[]
+
+      expect(calls).toHaveLength(1)
+      expect(result).toHaveLength(total)
+    }
+  )
 
   it('runs the two-phase danmaku flow and emits {p, m} CommentEntity rows', async () => {
     const vid = 'vid_42'
@@ -477,6 +556,25 @@ describe('tencent manifest', () => {
     )
 
     expect(result ?? undefined).toBeUndefined()
+  })
+
+  it.each([
+    ['vid_5', 5],
+    ['vid_105', 105],
+  ])('parseUrl finds %s in a 119-item episode list', async (vid, n) => {
+    const { fetcher } = mockFetcher({
+      [pageServerUrl]: pagedEpisodeList(119),
+    })
+    const runner = createContractRunner(builtinTencent, { fetcher })
+
+    const result = (await runner.runParseUrl(
+      `https://v.qq.com/x/cover/mzc00200wo6sr9q/${vid}.html`
+    )) as { episodeMeta?: { indexedId: string; episodeNumber: number } }
+
+    expect(result.episodeMeta).toMatchObject({
+      indexedId: vid,
+      episodeNumber: n,
+    })
   })
 
   it('loginProbe returns true when the details endpoint succeeds', async () => {
