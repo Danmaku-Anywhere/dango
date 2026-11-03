@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { createHash } from 'node:crypto'
 import builtinSohu from '../manifests/sohu.json' with { type: 'json' }
 import searchFixture from './fixtures/sohu-search.json' with { type: 'json' }
 import albumFixture from './fixtures/sohu-album.json' with { type: 'json' }
@@ -9,8 +10,9 @@ import { mockFetcher } from './mockFetcher.js'
 
 /**
  * Pins the sohu reference manifest end-to-end against captured
- * fixtures. search filters to site=1 album results, strips the <<<>>> markers
- * from the title and lifts the type out of the pipe-delimited meta line.
+ * fixtures. search signs the request (fpc, timeStamp, code), filters to site=1
+ * album results, strips the <<<>>> markers from the title and lifts the type
+ * out of the pipe-delimited meta line.
  * episodes maps the album videos list. danmaku derives the segment count from
  * the duration, fetches each paginated dmListAll window (keyed by time_begin)
  * and maps each comment to the canonical {p, m} shape, including the hex color
@@ -29,6 +31,20 @@ describe('sohu manifest', () => {
     })
 
     const result = await runner.runSearch({ q: '法医秦明' })
+
+    expect(calls).toHaveLength(1)
+    const params = new URL(calls[0]!.url).searchParams
+    expect(params.get('key')).toBe('法医秦明')
+    expect(params.get('type')).toBe('1')
+    const fpc = params.get('fpc') ?? ''
+    const timeStamp = params.get('timeStamp') ?? ''
+    expect(fpc).toMatch(/^[0-9a-f]{32}$/)
+    expect(timeStamp).toMatch(/^\d{13}$/)
+    expect(params.get('code')).toBe(
+      createHash('md5')
+        .update(`${timeStamp}${fpc}vxWaXm3C5SA9&fpc`)
+        .digest('hex')
+    )
 
     expect(result).toEqual([
       {
@@ -52,7 +68,6 @@ describe('sohu manifest', () => {
         episodeCount: 20,
       },
     ])
-    expect(calls).toHaveLength(1)
   })
 
   it('episodes: maps the album videos list to canonical entries', async () => {
