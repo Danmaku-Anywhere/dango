@@ -23,6 +23,11 @@ The engine version and the manifest `apiVersion` are tracked independently.
 
 ### Fixed
 
+- `@mr-quin/dango-manifests`: sohu (搜狐视频) search returned
+  `{"data":{"is_empty":1}}` for every keyword because the upstream endpoint
+  now requires a signed request. The query carries `fpc`, `timeStamp` and
+  `code = md5(timeStamp + fpc + secret)`. (sohu manifest `0.5.0` → `0.5.1`.)
+
 ### Security
 
 ## [0.10.0] - 2026-10-13
