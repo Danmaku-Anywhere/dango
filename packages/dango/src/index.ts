@@ -62,6 +62,7 @@ export {
   loadManifest,
   type ManifestIssue,
   type ManifestLoadResult,
+  parseManifest,
 } from './manifest/load.js'
 export {
   getDisplayStrings,

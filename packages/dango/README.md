@@ -47,6 +47,8 @@ Lower-level entry points:
 - `JsonataEvaluator`: per-instance compile cache
 - `ProtoRegistry`: manifest-scoped protobuf schema cache
 - `findManifestForUrl(manifests, url)`: URL → manifest resolver
+- `loadManifest(raw)`: classifies a parsed document as ok, incompatible or malformed
+- `parseManifest(text)`: the same, from manifest text; accepts JSONC (comments and trailing commas) so JSONata expressions can be annotated inline
 
 See [`src/index.ts`](src/index.ts) for the complete export surface.
 
@@ -92,7 +94,7 @@ This package is the engine only. The actual manifests for real sources live in t
 
 ## Dependencies
 
-- `jsonata`, `js-md5`, `fast-xml-parser`, `@bufbuild/protobuf`, `zod`
+- `jsonata`, `js-md5`, `fast-xml-parser`, `@bufbuild/protobuf`, `zod`, `jsonc-parser`
 
 ## Stability
 

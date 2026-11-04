@@ -15,6 +15,8 @@ The engine version and the manifest `apiVersion` are tracked independently.
 
 ### Added
 
+- `parseManifest(text)` parses manifest text as JSONC (comments and trailing commas), then applies the same compatibility and schema checks as `loadManifest`. Adds the `jsonc-parser` dependency.
+
 ### Changed
 
 ### Deprecated
