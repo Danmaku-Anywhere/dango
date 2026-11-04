@@ -1,7 +1,7 @@
 {
   "aiyifan": { "query": "延禧攻略" },
   "bahamut": { "query": "鬼滅之刃" },
-  "bilibili": { "query": "葬送的芙莉莲" },
+  "bilibili": { "query": "凡人修仙传" },
   "dandanplay": {
     "query": "葬送的芙莉莲",
     "config": { "baseUrl": "https://api.danmaku-staging.weeblify.app/ddp" }

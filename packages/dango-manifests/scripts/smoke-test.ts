@@ -387,11 +387,12 @@ main().catch((err) => {
   console.error(`[smoke:${source}] FAILED:`, err)
   if (source === 'bilibili') {
     console.error(
-      `\n[smoke:${source}] note: bilibili's anti-bot wall rejects scripted` +
-        ' callers that do not carry the full browser fingerprint set' +
-        ' (buvid_fp, b_lsid, etc.). The manifest itself is validated by the' +
-        ' fixture tests; live verification happens in a real browser context,' +
-        ' where those values are filled in automatically.'
+      `\n[smoke:${source}] note: bilibili filters media_bangumi / media_ft` +
+        ' search results by IP region, so a licensed title returns 0 rows' +
+        ' from outside mainland China even in a real browser. Retry with a' +
+        ' bilibili-produced title (e.g. 凡人修仙传) before suspecting the' +
+        ' manifest. A 412 means the anti-bot wall instead; a buvid3 from the' +
+        ' homepage visit normally clears it.'
     )
   }
   process.exit(1)
