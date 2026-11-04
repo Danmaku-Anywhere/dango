@@ -1,3 +1,4 @@
+import { type ParseError, parse, printParseErrorCode } from 'jsonc-parser'
 import { z } from 'zod'
 import {
   checkManifestCompatibility,
@@ -48,4 +49,23 @@ export function loadManifest(raw: unknown): ManifestLoadResult {
     }
   }
   return { status: 'ok', manifest: parsed.data }
+}
+
+/**
+ * Parses manifest text as JSONC (comments and trailing commas allowed), then
+ * runs the same compatibility and schema checks as `loadManifest`.
+ */
+export function parseManifest(text: string): ManifestLoadResult {
+  const errors: ParseError[] = []
+  const raw: unknown = parse(text, errors, { allowTrailingComma: true })
+  if (errors.length > 0) {
+    return {
+      status: 'malformed',
+      issues: errors.map((error) => ({
+        path: '',
+        message: `${printParseErrorCode(error.error)} at offset ${error.offset}`,
+      })),
+    }
+  }
+  return loadManifest(raw)
 }
