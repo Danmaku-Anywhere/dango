@@ -1,13 +1,13 @@
 {
   "name": "@mr-quin/dango-manifests",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Built-in dango manifests for danmaku sources",
   "author": "Mr-Quin",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mr-Quin/dango.git",
+    "url": "git+https://github.com/Danmaku-Anywhere/dango.git",
     "directory": "packages/dango-manifests"
   },
   "publishConfig": {

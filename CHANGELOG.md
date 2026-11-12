@@ -25,6 +25,15 @@ The engine version and the manifest `apiVersion` are tracked independently.
 
 ### Security
 
+## [0.10.1] - 2026-11-12
+
+The repository moved to the Danmaku-Anywhere organization. No code changes.
+
+### Changed
+
+- The packages' `repository` URL now points at
+  `github.com/Danmaku-Anywhere/dango`, and releases publish from there.
+
 ## [0.10.0] - 2026-10-13
 
 Typed request failures, manifests that declare the engine they need, and a
