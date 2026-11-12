@@ -4,7 +4,7 @@ name: Release
 # trusted publishing — no NPM_TOKEN. Prerequisites (configured outside this repo):
 #   - a `release` GitHub environment
 #   - a trusted publisher on npm for @mr-quin/dango AND @mr-quin/dango-manifests
-#     (repo Mr-Quin/dango, workflow release.yml, environment release)
+#     (repo Danmaku-Anywhere/dango, workflow release.yml, environment release)
 
 on:
   push:
