@@ -7,7 +7,7 @@
       "name": "搜狐视频"
     }
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "hosts": ["m.so.tv.sohu.com", "api.tv.sohu.com", "api.danmu.tv.sohu.com"],
   "search": {
     "inputs": ["q"],
@@ -18,7 +18,7 @@
         "request": {
           "method": "GET",
           "url": "'https://m.so.tv.sohu.com/search/pc/keyword'",
-          "query": "{ 'key': q, 'type': '1', 'page': '1', 'page_size': '20', 'tabsChosen': '0', 'poster': '4', 'tuple': '6', 'extSource': '1', 'show_star_detail': '3', 'pay': '1', 'hl': '3', 'uid': $string($millis() * 1000), 'plat': '-1', 'ssl': '0' }",
+          "query": "($ts := $string($millis()); $fpc := $md5('sohu-' & $ts & $string($random())); { 'key': q, 'type': '1', 'page': '1', 'page_size': '20', 'tabsChosen': '0', 'poster': '4', 'tuple': '6', 'extSource': '1', 'show_star_detail': '3', 'pay': '1', 'hl': '3', 'uid': $string($millis() * 1000), 'plat': '-1', 'ssl': '0', 'fpc': $fpc, 'timeStamp': $ts, 'code': $md5($ts & $fpc & 'vxWaXm3C5SA9&fpc') })",
           "rewriteHeaders": {
             "Referer": "'https://so.tv.sohu.com/'",
             "Origin": "'https://so.tv.sohu.com'"

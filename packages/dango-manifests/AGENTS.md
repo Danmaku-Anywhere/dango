@@ -113,7 +113,7 @@ Renren (`api.gorafie.com` + `static-dm.qwdjapp.com`), strong on foreign drama. D
 
 ## Sohu (`sohu`)
 
-Sohu TV (`*.sohu.com`). Search filters to `site=1` albums and strips `<<<>>>` markers from titles. Danmaku paginates `dmListAll` by `time_begin` (300s windows). Color quirk: `t.c` is a **decimal** RGB string for most comments but a `#RRGGBB` **hex** string for some, so the manifest branches on a leading `#` (`$contains($cr, '#') ? $hexToInt(...) : $number(...)`). Treating every value as hex overflows past `0xFFFFFF`.
+Sohu TV (`*.sohu.com`). Search must be signed or the API answers `{"data":{"is_empty":1}}` for every keyword: the request carries `fpc` (any 32-hex md5, it need not be a real fingerprint), `timeStamp` (ms epoch) and `code = $md5(timeStamp & fpc & 'vxWaXm3C5SA9&fpc')`. The other query params are still required; `key` plus the signature alone also returns `is_empty`. Search filters to `site=1` albums and strips `<<<>>>` markers from titles. Danmaku paginates `dmListAll` by `time_begin` (300s windows). Color quirk: `t.c` is a **decimal** RGB string for most comments but a `#RRGGBB` **hex** string for some, so the manifest branches on a leading `#` (`$contains($cr, '#') ? $hexToInt(...) : $number(...)`). Treating every value as hex overflows past `0xFFFFFF`.
 
 ## CI and the engine
 
