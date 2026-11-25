@@ -10,9 +10,9 @@ import { mockFetcher } from './mockFetcher.js'
 
 /**
  * Pins the sohu reference manifest end-to-end against captured
- * fixtures. search signs the request (fpc, timeStamp, code), filters to site=1
- * album results, strips the <<<>>> markers from the title and lifts the type
- * out of the pipe-delimited meta line.
+ * fixtures. search signs the request, filters to site=1 album results, strips
+ * the <<<>>> markers from the title and lifts the type out of the
+ * pipe-delimited meta line.
  * episodes maps the album videos list. danmaku derives the segment count from
  * the duration, fetches each paginated dmListAll window (keyed by time_begin)
  * and maps each comment to the canonical {p, m} shape, including the hex color
