@@ -59,6 +59,10 @@ Two parallel `media_bangumi` + `media_ft` calls under `search`, plus an optional
 
 Modes 2 and 3 (substyles of scroll-right) collapse to mode 1 in the canonical output; modes outside `{1,4,5,6}` are filtered out.
 
+### Region-filtered catalog search
+
+`media_bangumi` and `media_ft` results are filtered by the caller's IP region, not by cookies or login. From outside mainland China, a licensed title (葬送的芙莉莲, 鬼灭之刃, 进击的巨人) comes back `code: 0, numResults: 0` with no error, and a real browser on the same IP gets the same empty list on the 番剧 tab; only the server-rendered `/all` page still shows hits, because those are user-uploaded `video` rows. A bilibili-produced title (凡人修仙传, 灵笼) and the `video` search type answer cold, with no cookies at all. So an empty search from an overseas probe is a catalog question, not a buvid / `ExClimbWuzhi` activation problem, and the health query uses a domestic title for that reason.
+
 ### User uploads (UGC)
 
 `configSchema.includeUserUploads` (boolean, default false) adds a third WBI-signed search, `search_type=video`. It is a `forEach` whose `in` evaluates to `[]` when the flag is off, so the gated branch costs zero requests instead of duplicating the whole search pipeline as a second variant.
