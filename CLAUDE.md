@@ -75,3 +75,7 @@ The engine decodes protobuf reflectively via `@bufbuild/protobuf` against a base
 ## Per-package context
 
 Each package has an `AGENTS.md` with package-specific conventions and gotchas. Read it before working in that package. The engine's manifest authoring rules and the closed JSONata helper namespace are documented in `packages/dango/AGENTS.md`.
+
+## Proving a change
+
+The evidence each kind of change needs before it is ready for review (which commands, which logs, what a manifest change needs on top of its fixture test) is the "Proof" section of [AGENTS.md](AGENTS.md) at the repo root.
