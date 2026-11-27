@@ -7,7 +7,7 @@ dango has two independent version axes. Do not conflate them.
 | Engine version        | The npm package's JS/TS API (the exports you import)                  | `version` in each `package.json`                 | semver `MAJOR.MINOR.PATCH`               |
 | Manifest `apiVersion` | The data-format contract of a manifest document the engine interprets | the `apiVersion` field inside each manifest JSON | single monotonic integer (`1`, `2`, ...) |
 
-Engine semver describes the code surface. `apiVersion` describes the document schema. They bump on their own schedules. Both `@mr-quin/dango` (engine) and `@mr-quin/dango-manifests` (data) are at `0.2.0`, a pre-1.0 release: the JS/TS API is not frozen yet and may change in minor (`0.x`) bumps until `1.0.0`. `apiVersion` is `1`, the current manifest-format contract.
+Engine semver describes the code surface. `apiVersion` describes the document schema. They bump on their own schedules. Both `@mr-quin/dango` (engine) and `@mr-quin/dango-manifests` (data) are pre-1.0 releases: the JS/TS API is not frozen yet and may change in minor (`0.x`) bumps until `1.0.0`. `apiVersion` is `1`, the current manifest-format contract.
 
 ## Manifest `apiVersion` (data format)
 
