@@ -37,7 +37,7 @@
   "dependencies": {
     "@bufbuild/protobuf": "^2.17.0",
     "fast-xml-parser": "^4.5.7",
-    "js-md5": "^0.8.3",
+    "js-md5": "^0.11.0",
     "jsonata": "^2.3.0",
     "zod": "^4.6.7"
   },

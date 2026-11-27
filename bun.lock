@@ -18,7 +18,7 @@
       "dependencies": {
         "@bufbuild/protobuf": "^2.17.0",
         "fast-xml-parser": "^4.5.7",
-        "js-md5": "^0.8.3",
+        "js-md5": "^0.11.0",
         "jsonata": "^2.3.0",
         "zod": "^4.6.7",
       },
@@ -125,7 +125,7 @@
 
     "fast-xml-parser": ["fast-xml-parser@4.5.7", "", { "dependencies": { "strnum": "^1.0.5" }, "bin": { "fxparser": "src/cli/cli.js" } }, "sha512-a6Qh1RMCNbSrU1+sAyAAZH3rTe+OaWJbNZIq0S+ifZciUUOQtlVxBJwoTUE2bYhysmG/RYyI5WJFIKdBahJdrQ=="],
 
-    "js-md5": ["js-md5@0.8.3", "", {}, "sha512-qR0HB5uP6wCuRMrWPTrkMaev7MJZwJuuw4fnwAzRgP4J4/F8RwtodOKpGp4XpqsLBFzzgqIO42efFAyz2Et6KQ=="],
+    "js-md5": ["js-md5@0.11.0", "", {}, "sha512-/H/cS7fFxJvOy/oIlkEdfWBOxggi8MQ24rZWUFCOfNYV0Y5E3hepUacQ0kbpdmsItul7l9gfiHa04hZnZR+osA=="],
 
     "jsonata": ["jsonata@2.3.0", "", {}, "sha512-M2oCpvM32+f70iXmunUmrkASEfSuLkcr/CIZ2VTUOw4+ONSD7Pm9ecw8rocRlX2f/ev/sGgPLjInCZFop7Lhng=="],
 
