@@ -35,11 +35,11 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2",
-    "fast-xml-parser": "^4.5.1",
+    "@bufbuild/protobuf": "^2.17.0",
+    "fast-xml-parser": "^4.5.7",
     "js-md5": "^0.8.3",
-    "jsonata": "^2.0.6",
-    "zod": "^4.3.5"
+    "jsonata": "^2.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {}
 }

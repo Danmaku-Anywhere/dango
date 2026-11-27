@@ -28,7 +28,7 @@
     "smoke": "bun run scripts/smoke-test.ts"
   },
   "devDependencies": {
-    "@bufbuild/protobuf": "^2",
+    "@bufbuild/protobuf": "^2.17.0",
     "@mr-quin/dango": "workspace:*"
   }
 }
