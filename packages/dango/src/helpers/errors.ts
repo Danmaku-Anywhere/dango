@@ -1,9 +1,9 @@
 /**
  * Raised when a codec/crypto helper is handed input that is not valid base64.
- * The native `atob` throws a bare `DOMException` (InvalidCharacterError) with no
- * context; wrapping it lets a junk or empty upstream field (a common shape:
- * JSONata stringifies a missing field to the literal "undefined") classify as a
- * typed engine error instead of an opaque platform exception.
+ * The underlying decoder throws a bare `Error` with no context; wrapping it lets
+ * a junk or empty upstream field (a common shape: JSONata stringifies a missing
+ * field to the literal "undefined") classify as a typed engine error instead of
+ * an opaque one.
  */
 export class Base64DecodeError extends Error {
   constructor(input: string, options?: { cause?: unknown }) {

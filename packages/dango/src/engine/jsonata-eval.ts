@@ -1,20 +1,6 @@
 import jsonata from 'jsonata'
 import { helpers } from '../helpers/registry.js'
 
-// `timeout` is honored by jsonata 2.x at runtime (it drives the evaluation
-// guardrails) but is absent from the published `JsonataOptions` type.
-type JsonataOptionsWithTimeout = NonNullable<Parameters<typeof jsonata>[1]> & {
-  timeout?: number
-}
-
-function compileWithTimeout(
-  expr: string,
-  timeoutMs: number
-): jsonata.Expression {
-  const options: JsonataOptionsWithTimeout = { timeout: timeoutMs }
-  return jsonata(expr, options)
-}
-
 /**
  * Per-expression evaluation budget, in milliseconds. The engine has no
  * sandbox, so an unbounded JSONata expression (a deep recursion or a wide
@@ -49,7 +35,7 @@ export class JsonataEvaluator {
       this.cache.set(expr, cached)
       return cached
     }
-    const compiled = compileWithTimeout(expr, this.timeoutMs)
+    const compiled = jsonata(expr, { timeout: this.timeoutMs })
     for (const [name, fn] of Object.entries(helpers)) {
       compiled.registerFunction(name, fn as never)
     }

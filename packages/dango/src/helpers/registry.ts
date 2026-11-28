@@ -1,5 +1,5 @@
 import { md5 } from 'js-md5'
-import { base64ToBytes } from './_subtle-bytes.js'
+import { base64ToBytes, bytesToBase64 } from './_subtle-bytes.js'
 import { aesCbcDecrypt, aesCbcEncrypt } from './aes-cbc.js'
 import { gatewayDecrypt } from './gateway-decrypt.js'
 import { hmacSha256 } from './hmac.js'
@@ -24,17 +24,10 @@ function utf8Encode(s: string): Uint8Array {
 }
 
 function base64Encode(s: string): string {
-  // Iterative (not `String.fromCharCode(...bytes)`) so large inputs don't
-  // overflow the V8 argument limit (~65k spread args).
-  const bytes = utf8Encode(s)
-  let binary = ''
-  for (const b of bytes) binary += String.fromCharCode(b)
-  return btoa(binary)
+  return bytesToBase64(utf8Encode(s))
 }
 
 function base64Decode(s: string): string {
-  // Routes through base64ToBytes so invalid input raises the typed
-  // Base64DecodeError instead of a bare atob DOMException.
   return new TextDecoder().decode(base64ToBytes(s))
 }
 

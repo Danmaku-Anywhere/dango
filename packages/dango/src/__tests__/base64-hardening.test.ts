@@ -6,7 +6,7 @@ import { helpers } from '../helpers/registry.js'
 /**
  * Bad base64 reaching a crypto/codec helper (e.g. an empty upstream field that
  * JSONata stringifies to "undefined" and hands to $aesCbcDecrypt) used to
- * surface as a raw DOMException from atob(). These pin that it now raises a
+ * surface as a raw decoder error. These pin that it now raises a
  * typed Base64DecodeError with context, so junk upstream responses classify
  * cleanly instead of crashing opaquely.
  */
