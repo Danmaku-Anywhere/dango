@@ -74,8 +74,10 @@ Dango assumes manifests are **trusted code**. Official manifests are vetted by t
 | Prototype pollution               | Step IDs must be JS identifiers; `__proto__` / `constructor` / `prototype` rejected at manifest load                                                     |
 | Manifest-supplied executable code | None, JSONata is the only expression language, helpers are a closed namespace, manifests cannot register code                                            |
 | Hosts allowlist                   | Resolved request URLs must match the manifest's `hosts`; private-IP, localhost, and `*.local` hosts are rejected at load and at request time             |
-| Response size                     | Response bodies are capped at a fixed limit                                                                                                              |
-| Runaway iteration                 | `forEach` input length and `$range` output length are capped at fixed limits                                                                             |
+| Response size                     | Response bodies default to `DEFAULT_MAX_BODY_BYTES` (5 MiB); a host may raise the cap, never above `MAX_BODY_BYTES` (20 MiB)                             |
+| Runaway iteration                 | `forEach` input length defaults to `DEFAULT_MAX_FOR_EACH_ITEMS` (1,000), never above `MAX_FOR_EACH_ITEMS` (10,000); `$range` output is capped at 10,000  |
+| Expression time                   | Each JSONata evaluation times out after `DEFAULT_EVAL_TIMEOUT_MS` (5 s)                                                                                  |
+| Compile cache                     | Compiled expressions are kept in an LRU of at most `DEFAULT_MAX_CACHE_SIZE` (1,000) entries                                                              |
 
 ## Manifests live in a separate package
 

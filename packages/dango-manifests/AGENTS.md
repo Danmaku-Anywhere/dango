@@ -20,7 +20,7 @@ One manifest for the official API, a proxy, or a self-hosted server; `hosts: ['*
 
 - Danmaku `protobuf` is the default variant; it decodes against `protoDescriptors.bili` (regenerate with `scripts/gen-proto-descriptors.ts` in dango-manifests). Past the last segment bilibili returns 304, opted into with `acceptStatus: [304]`.
 - Modes 2 and 3 collapse to mode 1; modes outside `{1,4,5,6}` are dropped.
-- User uploads: `configSchema.includeUserUploads` gates a third search through a `forEach` whose `in` is `[]` when off. UGC variants of `episodes` / `season` / `parseUrl` are selected by `$exists(bvid) and $not($exists(seasonId))`; the `seasonId` half matters because a pgc episode also carries a `bvid`. Season identity is the landed `bvid`, not the collection id. `urlMatch` claims `/video/BV...` pages regardless of the checkbox, since the host matches it before config is in scope.
+- User uploads: `configSchema.includeUserUploads` gates a third search through a `forEach` whose `in` is `[]` when off. UGC variants of `episodes` / `season` / `parseUrl` are selected by `$exists(bvid) and $not($exists(seasonId))`; the `seasonId` half matters because a pgc episode also carries a `bvid`. Season identity is the landed `bvid`, not the collection id. `urlMatch` claims `/video/BV...` and `/video/av...` pages regardless of the checkbox, since the host matches it before config is in scope.
 
 ## Tencent (`tencent`)
 
