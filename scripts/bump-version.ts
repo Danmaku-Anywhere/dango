@@ -82,7 +82,7 @@ function main(): void {
       `  1. move CHANGELOG.md [Unreleased] entries into a dated [${version}] section`,
       '  2. bun run check',
       `  3. git commit -am "chore: release v${version}"`,
-      '  4. land the commit on main, then git fetch origin and find its sha',
+      '  4. land the commit on main (or the release/* branch for a patch), then git fetch origin and find its sha',
       `  5. git tag -a v${version} -m v${version} <landed-sha> && git push origin v${version}`,
       '',
     ].join('\n')

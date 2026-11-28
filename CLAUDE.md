@@ -24,7 +24,13 @@ This repo is bun-first. Do not introduce pnpm, npm, yarn, vitest, biome, or pret
 - No `any`. Use `unknown` and narrow.
 - The engine must stay platform-agnostic: only standard web APIs (`fetch`, `Response`, `TextEncoder`, `crypto.subtle`, `DecompressionStream`). `tsconfig.build.json` sets `types: []` to keep ambient Node/Bun globals out of engine code; do not loosen it.
 - Prefer fixing the code over disabling a lint rule, and say why when you do. The `perf` oxlint category stays off: `no-await-in-loop` conflicts with the engine's sequential pipeline execution.
+- `import type` for type-only imports, `function` declarations for named and exported functions, `/** */` for multi-line comments, `//` for one-liners.
+- No network in tests; time-dependent tests use `setSystemTime` from `bun:test`.
 - Fixtures under `**/__tests__/fixtures/**` are captured upstream responses; keep them byte-stable.
+
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org). Mark a breaking change with `!` after the type or scope, or a `BREAKING CHANGE:` footer.
 
 ## Versions and releases
 
