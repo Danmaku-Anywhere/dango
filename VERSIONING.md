@@ -7,7 +7,7 @@ dango has two independent version axes. Do not conflate them.
 | Engine version        | The npm package's JS/TS API (the exports you import)                  | `version` in each `package.json`                 | semver `MAJOR.MINOR.PATCH`               |
 | Manifest `apiVersion` | The data-format contract of a manifest document the engine interprets | the `apiVersion` field inside each manifest JSON | single monotonic integer (`1`, `2`, ...) |
 
-Engine semver describes the code surface. `apiVersion` describes the document schema. They bump on their own schedules. Both `@mr-quin/dango` (engine) and `@mr-quin/dango-manifests` (data) are at `0.2.0`, a pre-1.0 release: the JS/TS API is not frozen yet and may change in minor (`0.x`) bumps until `1.0.0`. `apiVersion` is `1`, the current manifest-format contract.
+Both packages are pre-1.0: the JS/TS API is not frozen and may change in minor (`0.x`) bumps until `1.0.0`.
 
 ## Manifest `apiVersion` (data format)
 
@@ -96,25 +96,15 @@ A bump means authors set `apiVersion: 2` and the engine adds `2` to
 - Any change to runtime evaluation semantics (JSONata context shape, variant
   `when` resolution order) that alters existing manifests' output.
 
-The mechanism is coarse: a single integer `Set`, no range negotiation. A bump is
-all-or-nothing. Until the host's bundled engine adds the new integer to
-`SUPPORTED_API_VERSIONS`, every manifest carrying the new version fails to parse
-and is skipped; `apiVersion: 1` manifests keep working on both old and new engines.
+A bump is all-or-nothing: until the host's engine adds the new integer, every manifest carrying it fails to parse. `apiVersion: 1` manifests keep working on both old and new engines.
 
 ### Forward incompatibility (manifest newer than the engine)
 
-When a manifest declares an `apiVersion` the engine does not support:
-
-- `zManifest.parse` throws a `ZodError` with message `unsupported apiVersion`.
-- `zManifest.safeParse` returns `{ success: false }`.
-- A host that calls `safeParse` and skips manifests that fail will silently drop
-  a too-new manifest. The source is effectively unavailable until the host ships a
-  newer engine that adds the version to the set.
-
-The intended host behavior is to treat this as "source unavailable, update the
-host," distinct from a malformed-manifest error, so users update rather than
-report a bug. Authors should target the lowest `apiVersion` that has the features
-they need, for the widest engine compatibility.
+`zManifest.parse` throws a `ZodError` (`unsupported apiVersion`) and `safeParse`
+returns `{ success: false }`. A host that skips failed manifests silently drops
+the source until it ships a newer engine. Hosts should report this as "update the
+host", not as a malformed manifest. Authors should target the lowest `apiVersion`
+that has the features they need.
 
 ## The free-form manifest `version` field
 
@@ -131,64 +121,18 @@ so a host can use it to detect that a specific manifest changed.
 
 ## Engine npm semver (the API)
 
-The public API is everything exported from the package root (`packages/dango/src/index.ts`):
-the runner, factory/helper functions, and the exported types consumers annotate
-against. For a library exposing classes and types, source-level breakage counts as
-runtime breakage.
+Only exports from the package root (`packages/dango/src/index.ts`) are public.
+The surface `1.0.0` is intended to freeze is `ManifestRunner`,
+`ManifestRunnerOptions`, `FetchLike`, `Manifest`, `zManifest`,
+`checkManifestCompatibility`, `ENGINE_VERSION`, and the output row schemas
+(`zSearchRow`, `zSeasonRow`, `zEpisodeRow`, `zParseUrlOutput`, `zCommentRow`)
+with their inferred types. Every other root export may change in a minor release.
 
-The descriptions below are the post-`1.0.0` semver model:
-
-- PATCH (`x.y.Z`): bug fixes, internal refactors, perf, docs. No change to any
-  exported signature, type, or documented behavior.
-- MINOR (`x.Y.0`): backward-compatible additions: new exports, new optional
-  params, widened inputs, new optional result fields, accepting a new
-  `apiVersion` (adding an integer to `SUPPORTED_API_VERSIONS`). Existing callers
-  compile and run unchanged.
-- MAJOR (`X.0.0`): anything that can break a consumer at compile or run time:
-  removing/renaming an export, changing a signature or a type's shape, throwing
-  where it used to return a `Result`, or dropping support for a previously-accepted
-  `apiVersion` (removing an integer from `SUPPORTED_API_VERSIONS`).
-
-Accepting a newer manifest format is minor. Dropping an old one is major.
-
-**Pre-1.0 (current, `0.x`).** The API is not frozen. Per semver, a `0.MINOR` bump
-(`0.2.0` to `0.3.0`) may carry breaking changes and `0.x.PATCH` carries fixes; a
-`^0.2.0` range resolves to `>=0.2.0 <0.3.0`, so consumers are insulated from the
-next breaking minor until they opt in. Breaking changes are still tagged
-`**BREAKING:**` in `CHANGELOG.md`. The `1.0.0` release will freeze the surface
-below and adopt the major/minor/patch model above.
-
-## Public API surface
-
-Pre-1.0, the API is not yet frozen: any export can still change in a `0.x` minor
-bump (tagged `**BREAKING:**` in `CHANGELOG.md`). The table below is the surface
-`1.0.0` is intended to freeze and what a host should depend on; treat everything
-else as unstable.
-
-| Export                                                                 | Kind  | Role                                                  |
-| ---------------------------------------------------------------------- | ----- | ----------------------------------------------------- |
-| `ManifestRunner`                                                       | value | construction entry point                              |
-| `ManifestRunnerOptions`                                                | type  | `{ fetcher?, signal? }` passed at construction        |
-| `FetchLike`                                                            | type  | injected fetcher signature                            |
-| `Manifest`                                                             | type  | the parsed-manifest shape the host stores and passes  |
-| `zManifest`                                                            | value | the host's `safeParse` gate                           |
-| `checkManifestCompatibility`                                           | value | gate a catalog entry before fetching its manifest     |
-| `ENGINE_VERSION`                                                       | value | this engine's release, compared to `minEngineVersion` |
-| `zSearchRow`                                                           | value | schema for one `search` row                           |
-| `zSeasonRow`                                                           | value | schema for the `season` result (same shape as search) |
-| `zEpisodeRow`                                                          | value | schema for one `episodes` row                         |
-| `zParseUrlOutput`                                                      | value | schema for the `parseUrl` result                      |
-| `zCommentRow`                                                          | value | schema for one `danmaku` row                          |
-| `SearchRow`, `SeasonRow`, `EpisodeRow`, `ParseUrlOutput`, `CommentRow` | type  | inferred from the schemas above                       |
-
-Everything else exported from the root is not part of the stable surface and may
-change in a minor release without a major bump. Notably, but not limited to:
-`AbortedError`, `MAX_BODY_BYTES`, `isPrivateHost`, `isPrivateHostPattern`,
-`ManifestInputs`, `JsonataEvaluator`, `ProtoRegistry`, `runPipeline`, `RunOptions`,
-`MAX_FOR_EACH_ITEMS`, `HttpCacheEntry`, `HttpStepCache`, `PipelineInput`,
-`findManifestForUrl`, `findManifestMatchForUrl`, `matchUrl`, `urlMatches`,
-`UrlMatchResult`, `helpers`, `zRequestSpec`, `zStep`, `SUPPORTED_API_VERSIONS`, and
-the types `ConfigSchema`, `Pipeline`, `RequestSpec`, `Step`, `VariantPipeline`.
+Pre-1.0, a `0.MINOR` bump (`0.10.0` to `0.11.0`) may carry breaking changes and
+`0.x.PATCH` carries fixes; a `^0.10.0` range stops before the next minor. Tag
+breaking changes `**BREAKING:**` in `CHANGELOG.md`. After `1.0.0`, accepting a
+newer manifest format (adding an integer to `SUPPORTED_API_VERSIONS`) is minor and
+dropping an old one is major.
 
 Deep imports (`@mr-quin/dango/dist/...`), anything marked `@internal`, names
 prefixed `_`, and undocumented behavior are never public API. Do not import them.
@@ -208,29 +152,26 @@ above).
    `catalog.json`.
 2. Move the `CHANGELOG.md` `[Unreleased]` entries into a dated `[X.Y.Z]` section.
 3. `bun run check` — confirm the tree is green.
-4. `git commit -am "chore: release vX.Y.Z"` (via a PR, or direct to `main` if
-   unprotected).
-5. Tag the release commit and push: `git tag -a vX.Y.Z -m vX.Y.Z && git push --follow-tags`.
+4. `git commit -am "chore: release vX.Y.Z"` and land it on `main` through a PR,
+   or on a `release/*` branch for a patch release.
+5. Fetch, then tag the commit that actually landed on `origin/main` (or the
+   `release/*` branch), not a local one, and push only that tag:
+   `git fetch origin && git tag -a vX.Y.Z -m vX.Y.Z <landed-sha> && git push origin vX.Y.Z`.
 6. Start the next release on main: `bun run bump X.(Y+1).0-dev` and commit it as
    `chore: start vX.(Y+1).0 development`. Never tag a `-dev` version; the release
    workflow rejects any tag with a prerelease suffix.
 
 Pushing the tag triggers `.github/workflows/release.yml`, which first fails if
-the tag does not match both `package.json` versions, then publishes both packages
+the tagged commit is not on `main` or a `release/*` branch or the tag does not
+match both `package.json` versions, then publishes both packages
 to npm via OIDC trusted publishing (provenance is automatic; no `NPM_TOKEN`).
 Prerequisites are a `release` GitHub environment and a trusted publisher on npm
-for each package. `apiVersion` is independent of the npm version; bump it only on
-an incompatible manifest-format change.
+for each package. GitHub runs the workflow from the tagged revision, so a tag on
+a commit that predates the gate is not checked. After a partial publish, rerun
+the workflow for the same tag; versions already on npm are skipped.
 
 ## Changelog
 
-`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com), newest
-first, with an `## [Unreleased]` section at the top, entries grouped under
-`Added / Changed / Deprecated / Removed / Fixed / Security`.
-
-- Mark every breaking change with a `**BREAKING:**` prefix, regardless of the
-  version digit.
-- Call out `apiVersion` changes as their own entries, separate from engine-API
-  entries, and always state the resulting supported range, e.g.
-  `Added: manifest apiVersion 2 (engine now accepts 1-2)`.
-- Released sections use an ISO date: `## [0.2.0] - 2026-06-02`.
+Mark every breaking change with a `**BREAKING:**` prefix. Call out `apiVersion`
+changes as their own entries and state the resulting supported range, e.g.
+`Added: manifest apiVersion 2 (engine now accepts 1-2)`.
