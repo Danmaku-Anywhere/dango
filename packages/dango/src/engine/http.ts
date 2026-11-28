@@ -1,3 +1,4 @@
+import { EntityDecoder } from '@nodable/entities'
 import { XMLParser } from 'fast-xml-parser'
 import { helpers } from '../helpers/registry.js'
 import type { RequestSpec } from '../manifest/schema.js'
@@ -163,6 +164,13 @@ const xmlParser = new XMLParser({
   parseAttributeValue: false,
   parseTagValue: false,
   trimValues: true,
+  // The parser's own decoder only decodes numeric character references when
+  // htmlEntities is on, which also decodes &nbsp;, &copy; and the rest of the
+  // HTML set. This one knows just the five XML entities plus numeric references.
+  entityDecoder: new EntityDecoder({
+    numericAllowed: true,
+    limit: { maxExpandedLength: 100_000, applyLimitsTo: 'all' },
+  }),
 })
 
 function parseTextBody(format: string, raw: string): unknown {

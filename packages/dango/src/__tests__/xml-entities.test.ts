@@ -4,9 +4,9 @@ import { zManifest } from '../manifest/schema.js'
 import { mockFetcher } from './fixtures.js'
 
 /**
- * XML responses decode the predefined entities in both their named and
- * numeric forms, in text and in attributes, so danmaku such as "It&#39;s"
- * reaches consumers as "It's". Other character references stay as written.
+ * XML responses decode the five predefined entities and every numeric
+ * character reference, in text and in attributes, so danmaku such as
+ * "It&#39;s" reaches consumers as "It's". HTML named entities stay as written.
  */
 
 const manifest = zManifest.parse({
@@ -42,16 +42,42 @@ describe('xml entity decoding', () => {
     expect(result).toEqual([{ p: '1,"a\'"', m: "It's <3 & 'hi' <ok> & \"q\"" }])
   })
 
-  it('leaves other character references as written', async () => {
+  it('decodes numeric references outside the BMP', async () => {
     const { fetcher } = mockFetcher({
       'https://api.example.com/dm.xml': {
-        body: '<i><d p="1">party&#127882;</d></i>',
+        body: '<i><d p="&#x1F38A;">party&#127882;</d></i>',
       },
     })
     const runner = new ManifestRunner(manifest, { fetcher })
 
     const result = await runner.runDanmaku({ cid: 1 })
 
-    expect(result).toEqual([{ p: '1', m: 'party&#127882;' }])
+    expect(result).toEqual([{ p: '\u{1F38A}', m: 'party\u{1F38A}' }])
+  })
+
+  it('decodes an escaped reference only once', async () => {
+    const { fetcher } = mockFetcher({
+      'https://api.example.com/dm.xml': {
+        body: '<i><d p="&amp;lt;">&amp;#39; &amp;amp;</d></i>',
+      },
+    })
+    const runner = new ManifestRunner(manifest, { fetcher })
+
+    const result = await runner.runDanmaku({ cid: 1 })
+
+    expect(result).toEqual([{ p: '&lt;', m: '&#39; &amp;' }])
+  })
+
+  it('leaves HTML named entities as written', async () => {
+    const { fetcher } = mockFetcher({
+      'https://api.example.com/dm.xml': {
+        body: '<i><d p="&copy;">a&nbsp;b &copy; &yen;</d></i>',
+      },
+    })
+    const runner = new ManifestRunner(manifest, { fetcher })
+
+    const result = await runner.runDanmaku({ cid: 1 })
+
+    expect(result).toEqual([{ p: '&copy;', m: 'a&nbsp;b &copy; &yen;' }])
   })
 })

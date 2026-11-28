@@ -17,6 +17,11 @@ The engine version and the manifest `apiVersion` are tracked independently.
 
 ### Changed
 
+- `@mr-quin/dango` now uses fast-xml-parser 5. XML responses still decode the
+  five predefined entities and decimal and hex character references, and now
+  decode every numeric reference, so `&#127882;` becomes the emoji where 4.x
+  left it literal. HTML named entities such as `&nbsp;` stay as written.
+
 ### Deprecated
 
 ### Removed
