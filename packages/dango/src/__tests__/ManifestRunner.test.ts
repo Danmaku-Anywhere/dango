@@ -385,6 +385,38 @@ describe('ManifestRunner.runLoginProbe', () => {
   })
 })
 
+function cacheManifest() {
+  return zManifest.parse({
+    apiVersion: 1,
+    id: 'cache-demo',
+    name: 'CacheDemo',
+    version: '0.1.0',
+    hosts: ['api.example.com'],
+    search: {
+      inputs: ['q'],
+      steps: [
+        {
+          type: 'http',
+          id: 'keys',
+          request: { method: 'GET', url: "'https://api.example.com/keys'" },
+          extract: { token: 'data.token' },
+          cache: { key: 'keys', ttlSeconds: 60 },
+        },
+        {
+          type: 'http',
+          id: 'search',
+          request: {
+            method: 'GET',
+            url: "'https://api.example.com/search'",
+            query: "{ 'q': q, 'token': keys.token }",
+          },
+        },
+      ],
+      output: 'search.data',
+    },
+  })
+}
+
 /**
  * Covers the generic http-step `cache`: a cache-enabled step reuses its
  * extract bag across runs of the same ManifestRunner instance until the TTL
@@ -392,38 +424,6 @@ describe('ManifestRunner.runLoginProbe', () => {
  * that expiry falls through to a fresh fetch.
  */
 describe('http step cache', () => {
-  function cacheManifest() {
-    return zManifest.parse({
-      apiVersion: 1,
-      id: 'cache-demo',
-      name: 'CacheDemo',
-      version: '0.1.0',
-      hosts: ['api.example.com'],
-      search: {
-        inputs: ['q'],
-        steps: [
-          {
-            type: 'http',
-            id: 'keys',
-            request: { method: 'GET', url: "'https://api.example.com/keys'" },
-            extract: { token: 'data.token' },
-            cache: { key: 'keys', ttlSeconds: 60 },
-          },
-          {
-            type: 'http',
-            id: 'search',
-            request: {
-              method: 'GET',
-              url: "'https://api.example.com/search'",
-              query: "{ 'q': q, 'token': keys.token }",
-            },
-          },
-        ],
-        output: 'search.data',
-      },
-    })
-  }
-
   it('fetches the cached step once across two runSearch calls', async () => {
     const { fetcher, calls } = mockFetcher({
       'https://api.example.com/keys': {

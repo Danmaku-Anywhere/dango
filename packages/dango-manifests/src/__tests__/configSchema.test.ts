@@ -62,9 +62,9 @@ describe('manifest configSchema display', () => {
           const consts = options.map((option) =>
             isRecord(option) ? option.const : undefined
           )
-          expect({ path, consts: [...consts].sort() }).toEqual({
+          expect({ path, consts: consts.toSorted() }).toEqual({
             path,
-            consts: [...(field.enum as unknown[])].sort(),
+            consts: (field.enum as unknown[]).toSorted(),
           })
           for (const option of options) {
             expect(isRecord(option) && typeof option.title === 'string').toBe(

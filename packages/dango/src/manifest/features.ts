@@ -113,6 +113,8 @@ function enumerate(
     }
   } else if (!isLeaf(schema)) {
     throw new Error(
+      // zod core types expose the schema kind only through `_zod`.
+      // oxlint-disable-next-line no-underscore-dangle
       `cannot enumerate ${schema._zod.def.type} at ${path}; teach features.ts about it`
     )
   }
@@ -134,7 +136,7 @@ export function engineSurface(): SurfaceName[] {
   for (const name of Object.keys(helpers)) {
     names.add(`helper.$${name}`)
   }
-  return [...names].sort()
+  return [...names].toSorted()
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

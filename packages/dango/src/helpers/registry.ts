@@ -52,7 +52,7 @@ function permute(indices: number[], source: string): string {
 
 /** Sorted-by-key, URL-encoded `k=v&k=v` string. For URL query construction. */
 function sortedQueryString(obj: Record<string, unknown>): string {
-  const keys = Object.keys(obj).sort()
+  const keys = Object.keys(obj).toSorted()
   return keys
     .map(
       (k) =>
@@ -63,7 +63,7 @@ function sortedQueryString(obj: Record<string, unknown>): string {
 
 /** Sorted-by-key, un-encoded `k=v` joined by `sep`. For sign-then-hash canonical forms. */
 function sortedRawString(obj: Record<string, unknown>, sep = '&'): string {
-  const keys = Object.keys(obj).sort()
+  const keys = Object.keys(obj).toSorted()
   return keys.map((k) => `${k}=${obj[k] ?? ''}`).join(sep)
 }
 

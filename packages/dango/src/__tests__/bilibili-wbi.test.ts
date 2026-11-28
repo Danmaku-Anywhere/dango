@@ -24,7 +24,7 @@ function computeMixinKey(imgKey: string, subKey: string): string {
 }
 
 function computeWRid(params: Record<string, string>, mixinKey: string): string {
-  const sorted = Object.keys(params).sort()
+  const sorted = Object.keys(params).toSorted()
   const queryString = sorted
     .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
     .join('&')

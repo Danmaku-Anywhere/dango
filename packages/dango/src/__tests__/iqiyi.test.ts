@@ -23,7 +23,7 @@ const iqiyiResponse = {
 // Expected canonical-form string for signing, confirms the engine matches
 // the imperative implementation in danmu_api's iqiyi.js _createSign().
 function expectedSign(params: Record<string, string>): string {
-  const sorted = Object.keys(params).sort()
+  const sorted = Object.keys(params).toSorted()
   const canonical = sorted.map((k) => `${k}=${params[k]}`).join('&')
   return md5(`${canonical}&secret_key=howcuteitis`).toUpperCase()
 }
