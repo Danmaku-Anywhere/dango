@@ -53,7 +53,7 @@ describe('catalog.json', () => {
       f.endsWith('.json')
     )
     const ids = catalog.manifests.map((m) => m.id)
-    const sorted = [...ids].sort((a, b) => a.localeCompare(b))
+    const sorted = ids.toSorted((a, b) => a.localeCompare(b))
 
     expect(catalog.manifests).toHaveLength(fileNames.length)
     expect(ids).toEqual(sorted)

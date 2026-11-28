@@ -84,42 +84,42 @@ describe('response body size: default vs hard cap', () => {
   })
 })
 
+function forEachManifest() {
+  return baseManifest({
+    search: {
+      inputs: ['items'],
+      steps: [
+        {
+          type: 'forEach',
+          id: 'loop',
+          in: 'items',
+          as: 'i',
+          request: { method: 'GET', url: "'https://api.example.com/x'" },
+        },
+      ],
+      output: 'loop',
+    },
+  })
+}
+
+function runForEach(
+  manifest: ReturnType<typeof baseManifest>,
+  items: number[],
+  opts: Partial<RunOptions> = {}
+) {
+  const { fetcher, calls } = mockFetcher({
+    'https://api.example.com/x': { body: '{}' },
+  })
+  const result = runPipeline(
+    manifest,
+    manifest.search!,
+    { items },
+    { fetcher, ...opts }
+  )
+  return { result, calls }
+}
+
 describe('forEach.in length: default vs hard cap', () => {
-  function forEachManifest() {
-    return baseManifest({
-      search: {
-        inputs: ['items'],
-        steps: [
-          {
-            type: 'forEach',
-            id: 'loop',
-            in: 'items',
-            as: 'i',
-            request: { method: 'GET', url: "'https://api.example.com/x'" },
-          },
-        ],
-        output: 'loop',
-      },
-    })
-  }
-
-  function runForEach(
-    manifest: ReturnType<typeof baseManifest>,
-    items: number[],
-    opts: Partial<RunOptions> = {}
-  ) {
-    const { fetcher, calls } = mockFetcher({
-      'https://api.example.com/x': { body: '{}' },
-    })
-    const result = runPipeline(
-      manifest,
-      manifest.search!,
-      { items },
-      { fetcher, ...opts }
-    )
-    return { result, calls }
-  }
-
   it('rejects an array over the ~1000 default cap', async () => {
     const items = Array.from({ length: 1001 }, (_, i) => i)
     const { result } = runForEach(forEachManifest(), items)

@@ -191,45 +191,46 @@ describe('body read failures', () => {
   })
 })
 
-describe('forEach failures', () => {
-  function loopManifest(forEach: Record<string, unknown> = {}) {
-    return zManifest.parse({
-      apiVersion: 1,
-      id: 'loop',
-      name: 'loop',
-      version: '0.1.0',
-      hosts: ['api.example.com'],
-      search: {
-        inputs: [],
-        steps: [
-          {
-            type: 'forEach',
-            id: 'loop',
-            in: '$range(0, 3)',
-            as: 'i',
-            request: {
-              method: 'GET',
-              url: "'https://api.example.com/x?i=' & $string(i)",
-            },
-            ...forEach,
+function loopManifest(forEach: Record<string, unknown> = {}) {
+  return zManifest.parse({
+    apiVersion: 1,
+    id: 'loop',
+    name: 'loop',
+    version: '0.1.0',
+    hosts: ['api.example.com'],
+    search: {
+      inputs: [],
+      steps: [
+        {
+          type: 'forEach',
+          id: 'loop',
+          in: '$range(0, 3)',
+          as: 'i',
+          request: {
+            method: 'GET',
+            url: "'https://api.example.com/x?i=' & $string(i)",
           },
-        ],
-        output: 'loop',
-      },
-    })
-  }
+          ...forEach,
+        },
+      ],
+      output: 'loop',
+    },
+  })
+}
 
+const failBodyOnItem1: FetchLike = (url) =>
+  url.endsWith('i=1')
+    ? respondWithBody(() => Promise.reject(new TypeError('reset')))
+    : respondWithBody(async () => '[1]')
+
+describe('forEach failures', () => {
   it('skips an iteration whose body read failed', async () => {
     const m = loopManifest()
-    const fetcher: FetchLike = (url) =>
-      url.endsWith('i=1')
-        ? respondWithBody(() => Promise.reject(new TypeError('reset')))
-        : respondWithBody(async () => '[1]')
     const out = await runPipeline(
       m,
       m.search!,
       {},
-      { fetcher, continueOnError: true }
+      { fetcher: failBodyOnItem1, continueOnError: true }
     )
     expect(out).toHaveLength(2)
   })

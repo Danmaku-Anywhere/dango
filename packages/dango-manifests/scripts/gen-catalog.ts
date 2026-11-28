@@ -77,7 +77,7 @@ function generateCatalog(): Catalog {
 
   const manifests = fileNames
     .map((fileName) => toCatalogEntry(readManifest(fileName), fileName))
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .toSorted((a, b) => a.id.localeCompare(b.id))
 
   return {
     packageVersion: readPackageVersion(),

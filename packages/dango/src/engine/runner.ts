@@ -190,6 +190,8 @@ async function runWithConcurrency<T, R>(
     const workers = Array.from(
       { length: Math.min(limit, items.length) },
       async () => {
+        // Other workers set firstError through the shared closure.
+        // oxlint-disable-next-line no-unmodified-loop-condition
         while (firstError === undefined) {
           const i = next++
           if (i >= items.length) return

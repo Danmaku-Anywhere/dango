@@ -54,6 +54,14 @@ function ok(body: unknown): ReturnType<FetchLike> {
   })
 }
 
+const failItem3: FetchLike = async (url) =>
+  url.endsWith('i=3') ? fail() : ok({ items: [] })
+
+const failItem2: FetchLike = async (url) => {
+  const i = Number(url.split('i=')[1])
+  return i === 2 ? fail() : ok({ items: [i] })
+}
+
 describe('forEach default error handling (fail-fast)', () => {
   it('cancels in-flight sibling requests when one iteration fails', async () => {
     let siblingAborted = false
@@ -80,12 +88,9 @@ describe('forEach default error handling (fail-fast)', () => {
   })
 
   it('rejects the step (does not tolerate) without the option', async () => {
-    const fetcher: FetchLike = async (url) =>
-      url.endsWith('i=3') ? fail() : ok({ items: [] })
-
     const m = manifest({ concurrency: 2, collect: 'items' })
     await expect(
-      runPipeline(m, m.search!, { q: 'x' }, { fetcher })
+      runPipeline(m, m.search!, { q: 'x' }, { fetcher: failItem3 })
     ).rejects.toThrow(/HTTP 500/)
   })
 })
@@ -137,14 +142,9 @@ describe('forEach continueOnError (host RunOption)', () => {
   })
 
   it('threads through the ManifestRunner public API', async () => {
-    const fetcher: FetchLike = async (url) => {
-      const i = Number(url.split('i=')[1])
-      return i === 2 ? fail() : ok({ items: [i] })
-    }
-
     const runner = new ManifestRunner(
       manifest({ concurrency: 2, collect: 'items' }),
-      { fetcher }
+      { fetcher: failItem2 }
     )
     const out = await runner.runSearch({ q: 'x' }, { continueOnError: true })
 

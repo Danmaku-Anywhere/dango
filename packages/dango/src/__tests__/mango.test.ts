@@ -243,7 +243,7 @@ describe('Mango (danmaku, segment-loop forEach)', () => {
     const segmentUrls = calls
       .slice(2)
       .map((c) => c.url)
-      .sort()
+      .toSorted()
     expect(segmentUrls).toEqual([
       'https://cdn1.mgtv.com/v100/0.json',
       'https://cdn1.mgtv.com/v100/1.json',

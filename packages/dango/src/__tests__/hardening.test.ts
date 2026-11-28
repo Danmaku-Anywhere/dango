@@ -247,28 +247,28 @@ describe('response body size cap', () => {
   })
 })
 
-describe('forEach.in length cap', () => {
-  function forEachManifest() {
-    return baseManifest({
-      search: {
-        inputs: [],
-        steps: [
-          {
-            type: 'forEach',
-            id: 'loop',
-            in: '$range(0, count)',
-            as: 'i',
-            request: {
-              method: 'GET',
-              url: "'https://api.example.com/x'",
-            },
+function forEachManifest() {
+  return baseManifest({
+    search: {
+      inputs: [],
+      steps: [
+        {
+          type: 'forEach',
+          id: 'loop',
+          in: '$range(0, count)',
+          as: 'i',
+          request: {
+            method: 'GET',
+            url: "'https://api.example.com/x'",
           },
-        ],
-        output: 'loop',
-      },
-    })
-  }
+        },
+      ],
+      output: 'loop',
+    },
+  })
+}
 
+describe('forEach.in length cap', () => {
   it('rejects when the array exceeds the fixed cap', async () => {
     // The array comes in via an input, not $range, whose own 10k cap would
     // otherwise clamp the count before the forEach guard ever sees it.

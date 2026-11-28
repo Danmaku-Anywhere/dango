@@ -20,6 +20,15 @@ import { mockFetcher } from './mockFetcher.js'
  * matches them by stripping the query string.
  */
 
+function makeVideos(from: number, to: number) {
+  return Array.from({ length: to - from + 1 }, (_, i) => ({
+    id: `vid_${from + i}`,
+    title: `第${from + i}集`,
+    stage: String(from + i),
+    thumbnail_v2: `https://example.com/${from + i}.jpg`,
+  }))
+}
+
 describe('youku manifest', () => {
   it('search: keeps Youku-owned results, strips HTML and parses the feature string', async () => {
     const { fetcher, calls } = mockFetcher({
@@ -79,13 +88,6 @@ describe('youku manifest', () => {
   })
 
   it('episodes: paginates past the 100-per-page limit until a short page', async () => {
-    const makeVideos = (from: number, to: number) =>
-      Array.from({ length: to - from + 1 }, (_, i) => ({
-        id: `vid_${from + i}`,
-        title: `第${from + i}集`,
-        stage: String(from + i),
-        thumbnail_v2: `https://example.com/${from + i}.jpg`,
-      }))
     const { fetcher, calls } = mockFetcher({
       'https://openapi.youku.com/v2/shows/videos.json': (url) => {
         const page = new URL(url).searchParams.get('page')
