@@ -6,47 +6,11 @@ This package is data, not code. There is no `index.ts`: consumers import each ma
 
 ## Shipped manifests
 
-| Id           | Endpoint                                    | Notes                                                                                                                                                                |
-| ------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dandanplay` | `baseUrl` (default `api.dandanplay.net`)    | Unified DDP source. Default official; optional `appId`/`appSecret` signing, `auth` headers, or none (proxy). `baseUrl` overrides the endpoint (proxy / self-hosted). |
-| `bilibili`   | `api.bilibili.com`                          | Parallel media_bangumi + media_ft search; xml + protobuf danmaku variants.                                                                                           |
-| `tencent`    | `pbaccess.video.qq.com` + `dm.video.qq.com` | POST bodies, page-cursor episode pagination via forEach `breakOn`, two-phase danmaku (segment index then per-segment fetch).                                         |
-| `hanjutv`    | `hxqapi.hiyun.tv` + `hxqapi.zmdcq.com`      | Korean-drama source; search, detail-driven episodes, per-segment danmaku.                                                                                            |
-| `mango`      | `*.mgtv.com` + `*.hitv.com`                 | Mango TV; source=imgo search, two-stage showlist episodes, per-minute CDN danmaku shards.                                                                            |
-| `migu`       | `*.migu.cn` + `*.miguvideo.com`             | Migu Video; content-info lookup, episodes list, segmented danmaku.                                                                                                   |
-| `youku`      | `*.youku.com` + `log.mmstat.com`            | Youku; HTML-stripped search, openapi episodes, signed per-minute danmaku POSTs (cna guid + \_m_h5_tk token).                                                         |
-| `iqiyi`      | `*.iqiyi.com` + `mesh.if.iqiyi.com`         | iQIYI; /v\_ watch-page search, signed base_info episodes, zlib-deflated XML bullet shards.                                                                           |
-| `aiyifan`    | `yfsp.tv` + `rankv21.tripdata.app`          | Aiyifan; homepage-scraped pub/priv keys sign each JSON request; getBarrage danmaku.                                                                                  |
-| `bahamut`    | `api.gamer.com.tw`                          | Bahamut Anime (Traditional Chinese); single danmu.php fetch, time in tenths of a second.                                                                             |
-| `maiduidui`  | `mob.mddcloud.com.cn`                       | Maiduidui; nested search, listVodSactions episodes, per-minute vodBarrage shards.                                                                                    |
-| `renren`     | `api.gorafie.com` + `static-dm.qwdjapp.com` | Renren (foreign drama); array-rooted danmaku with CSV `p` strings.                                                                                                   |
-| `sohu`       | `*.sohu.com`                                | Sohu TV; site=1 search, album episodes, paginated dmListAll danmaku (decimal/hex color handling).                                                                    |
+`dandanplay`, `bilibili`, `tencent`, `hanjutv`, `mango`, `migu`, `youku`, `iqiyi`, `aiyifan`, `bahamut`, `maiduidui`, `renren`, `sohu`. The files are in `src/manifests/`; per-source notes for authors are in [AGENTS.md](AGENTS.md).
 
-## Layout
+`dandanplay` is one manifest for every DDP endpoint. `baseUrl` (config) defaults to the official `api.dandanplay.net`; point it at a proxy or self-hosted server to override. Auth is picked by config: `appId` + `appSecret` sign each request (`X-Signature: Base64(SHA256(appId + timestamp + path + appSecret))`, the secret is never sent); else `auth.enabled` + `auth.headers` attach custom headers; else no auth.
 
-```
-src/
-  manifests/
-    aiyifan.json
-    bahamut.json
-    bilibili.json
-    dandanplay.json
-    hanjutv.json
-    iqiyi.json
-    maiduidui.json
-    mango.json
-    migu.json
-    renren.json
-    sohu.json
-    tencent.json
-    youku.json
-  __tests__/
-    *.test.ts                           # per-manifest pipeline tests
-    fixtures/                           # captured representative responses
-    mockFetcher.ts                      # shared test fetcher (string + Uint8Array bodies)
-scripts/
-  smoke-test.ts                         # manual end-to-end test against the real API
-```
+`bilibili` and `tencent` rely on `rewriteHeaders` for `Origin` / `Referer`, which a browser host's `FetchLike` applies, for example with `chrome.declarativeNetRequest`.
 
 ## Usage
 
@@ -54,97 +18,37 @@ scripts/
 import { ManifestRunner, zManifest } from '@mr-quin/dango'
 import builtinDandanplay from '@mr-quin/dango-manifests/manifests/dandanplay.json' with { type: 'json' }
 
-const manifest = zManifest.parse(builtinDandanplay)
-const runner = new ManifestRunner(manifest, { fetcher })
-
+const runner = new ManifestRunner(zManifest.parse(builtinDandanplay), {
+  fetcher,
+})
 const results = await runner.runSearch({ q: 'frieren' })
-const episodes = await runner.runEpisodes({
-  bangumiId: results[0].providerIds.bangumiId,
-})
-const danmaku = await runner.runDanmaku({
-  episodeId: episodes[0].providerIds.episodeId,
-})
 ```
 
 ## CDN consumption
 
-A host can discover and fetch manifests over a CDN without bundling this package at build time. jsDelivr and unpkg serve the published package files, so a host reads `catalog.json` for the index, then fetches each entry's `file` path.
+A host can discover and fetch manifests over a CDN without bundling this package. jsDelivr and unpkg serve the published files: read `catalog.json` for the index, then fetch each entry's `file` path.
 
 ```
 https://cdn.jsdelivr.net/npm/@mr-quin/dango-manifests@<version>/catalog.json
 https://cdn.jsdelivr.net/npm/@mr-quin/dango-manifests@<version>/<file>
 ```
 
-`catalog.json` is generated from the manifests on disk and ships with the package:
+Each catalog entry has `id`, `name`, `version`, `apiVersion`, `file`, and `minEngineVersion` when the manifest declares one. Gate entries with the engine's `checkManifestCompatibility` before fetching. Pin a `<version>` for reproducibility.
 
-```jsonc
-{
-  "packageVersion": "0.4.0",
-  "manifests": [
-    {
-      "id": "bilibili",
-      "name": "Bilibili",
-      "version": "0.4.0",
-      "apiVersion": 1,
-      "file": "src/manifests/bilibili.json",
-    },
-    // ...
-  ],
-}
-```
-
-An entry also carries `minEngineVersion` when its manifest declares one. Gate entries with the engine's `checkManifestCompatibility` before fetching, so a host never installs a manifest its engine cannot run.
-
-Each `file` is the in-package path to fetch, e.g.:
-
-```
-https://cdn.jsdelivr.net/npm/@mr-quin/dango-manifests@0.4.0/src/manifests/bilibili.json
-```
-
-unpkg works the same way (`https://unpkg.com/@mr-quin/dango-manifests@<version>/...`). Pin a `<version>` for reproducibility; omit it to track the latest published release.
-
-`catalog.json` is regenerated as part of `bun run build`; `bun run check` fails if the committed copy is stale (run `bun run catalog` and commit the result).
-
-## Routing notes
-
-**DanDanPlay** (`dandanplay`) is one manifest for every DDP endpoint over the `/api/v2` paths. `baseUrl` (config) defaults to the official `api.dandanplay.net`; point it at a proxy or self-hosted server to override. Auth is picked by config: `appId` + `appSecret` sign each request (`X-Signature: Base64(SHA256(appId + timestamp + path + appSecret))`, secret never sent); else `auth.enabled` + `auth.headers` attach custom headers; else no auth (for a proxy that signs server-side). The official API is just the case with no `baseUrl` and credentials set.
-
-**Bilibili** and **Tencent** call their public APIs directly. Both rely on `rewriteHeaders` for `Origin` / `Referer`, which a browser host's `FetchLike` applies via a request-header rewrite mechanism such as `chrome.declarativeNetRequest`. The smoke script merges those headers in directly since Node fetch lets you set them.
+`catalog.json` is regenerated by `bun run build`; `bun run check` fails if the committed copy is stale (run `bun run catalog` and commit the result).
 
 ## Smoke testing
 
-`bun run smoke <source> [keyword]` walks search → first result → episodes → first episode → danmaku against the real API. Not in CI; useful when adding a manifest or verifying after an upstream change.
+`bun run smoke <source> [keyword]` walks search, episodes and danmaku against the real API. It is manual and not in CI. `ddp` needs `DDP_APP_ID` / `DDP_APP_SECRET`. The smoke fetcher keeps a per-host cookie jar (bilibili's anti-bot wall) and merges `rewriteHeaders` into the request.
 
-| Source   | Command                         | Status                                                   |
-| -------- | ------------------------------- | -------------------------------------------------------- |
-| ddp      | `bun run smoke ddp Frieren`     | needs `DDP_APP_ID` / `DDP_APP_SECRET` env (official API) |
-| bilibili | `bun run smoke bilibili Naruto` | works (after a cookie warm-up via `www.bilibili.com`)    |
-| tencent  | `bun run smoke tencent 庆余年`  | works                                                    |
-
-The smoke fetcher keeps a per-host cookie jar so bilibili's anti-bot wall lets us through, and it merges `rewriteHeaders` into the outgoing request (Node has no `Origin`/`Referer` restriction). The default `ddp` smoke hits the official API and needs `DDP_APP_ID` / `DDP_APP_SECRET`.
-
-## Adding a new manifest
+## Adding a manifest
 
 1. Drop the JSON file in `src/manifests/`. Use `id: '<source>'`.
-2. Capture representative responses from the source's API to `src/__tests__/fixtures/`.
-3. Write a per-manifest test that:
-   - Parses the manifest against `zManifest` (catches schema drift)
-   - Runs each pipeline with a mocked `FetchLike` against the captured fixtures, through `createContractRunner` so the output is also checked against the engine's row schemas
-   - Asserts the canonical shape the engine emits
-4. (Optional) Add a section to `scripts/smoke-test.ts` to exercise the new manifest against a live endpoint.
-
-Each manifest's tests own their own fixtures, don't share fixtures across manifests.
+2. Capture representative responses to `src/__tests__/fixtures/`. Each manifest owns its fixtures.
+3. Write a per-manifest test: parse against `zManifest`, run each pipeline with a mocked `FetchLike` through `createContractRunner` so the output is also checked against the engine's row schemas, and assert the canonical shape.
+4. Optionally add the source to `scripts/smoke-test.ts`.
+5. Run `bun run build && bun test`.
 
 ## Trust model
 
-Manifests in this package are vetted at PR review time and shipped as built-ins. They are not user-installable. User-installed manifests are a separate concern a host may add with explicit consent UX. See dango's [trust model](../dango/README.md#trust-model) for the engine-level invariants that apply regardless of where a manifest comes from.
-
-## Scripts
-
-| Command                  | Description                                                    |
-| ------------------------ | -------------------------------------------------------------- |
-| `bun test`               | bun test, fixture-backed pipeline tests                        |
-| `bun run smoke <source>` | Live end-to-end test against the real API (manual, **not CI**) |
-| `bun run type-check`     | tsc --noEmit                                                   |
-| `bun run catalog`        | Regenerate `catalog.json` from the manifests on disk           |
-| `bun run catalog:check`  | Fail if the committed `catalog.json` is stale                  |
+Manifests here are vetted at PR review time and shipped as built-ins. They are not user-installable. See dango's [trust model](../dango/README.md#trust-model) for the engine-level invariants.

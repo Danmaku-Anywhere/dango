@@ -66,7 +66,7 @@ Rows require a string `indexedId`, a string `title` and an object `providerIds`;
 
 ## Trust model
 
-Dango assumes manifests are **trusted code**. Official manifests are vetted by the project; user-installed manifests must be presented to the user with an explicit warning that they're third-party code and carry the same risks as running any untrusted code. Dango is not a sandbox: there is no JSONata evaluation timeout and no regex input caps, so a hostile manifest can still burn CPU. It does enforce a set of fixed safety and correctness guards that don't depend on trust:
+Dango assumes manifests are **trusted code**. Official manifests are vetted by the project; user-installed manifests must be presented to the user with an explicit warning that they're third-party code and carry the same risks as running any untrusted code. Dango is not a sandbox: each JSONata expression has an evaluation timeout, but there is no cap on regex input, so a pathological regex can still burn CPU. It does enforce a set of fixed safety and correctness guards that don't depend on trust:
 
 | Concern                           | Guard                                                                                                                                                    |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -81,50 +81,8 @@ Dango assumes manifests are **trusted code**. Official manifests are vetted by t
 
 This package is the engine only. The actual manifests for real sources live in the sibling [`@mr-quin/dango-manifests`](../dango-manifests) package, alongside their fixtures and per-source tests. That package depends on the engine; a host application typically depends on both.
 
-## Scripts
-
-| Command              | Description      |
-| -------------------- | ---------------- |
-| `bun test`           | bun test         |
-| `bun run type-check` | tsc --noEmit     |
-| `bun run lint`       | oxlint           |
-| `bun run build`      | Compile with tsc |
-
-## Dependencies
-
-- `jsonata`, `js-md5`, `fast-xml-parser`, `@bufbuild/protobuf`, `zod`
-
 ## Stability
 
-dango is **pre-1.0** (`0.x`): the API is not frozen, so a `0.MINOR` bump may carry
-breaking changes (tagged **BREAKING:** in the changelog). A `^0.2.0` range pins to
-`>=0.2.0 <0.3.0`, so the next breaking minor is opt-in. `1.0.0` will freeze the
-surface below and switch to standard major/minor/patch semver.
-
-Only the exports from the package root (`@mr-quin/dango`) are public API. Deep
-imports (`@mr-quin/dango/dist/...`) and anything marked `@internal` may change at
-any time.
-
-Even within the root exports, a few are the surface `1.0.0` is intended to freeze
-and what a host should depend on: `ManifestRunner`, `ManifestRunnerOptions`,
-`FetchLike`, the `Manifest` type, `zManifest`, and the output row schemas
-(`zSearchRow`, `zSeasonRow`, `zEpisodeRow`, `zParseUrlOutput`, `zCommentRow`) with
-their inferred types. Everything else exported from
-the root (notably, but not limited to, `runPipeline`, `JsonataEvaluator`,
-`ProtoRegistry`, the URL-match helpers, `helpers`, `zRequestSpec`, `zStep`,
-`SUPPORTED_API_VERSIONS`, the cap constants, and the remaining types) is not part
-of that surface and is more likely to shift before 1.0.
-
-Manifests carry an integer `apiVersion`, versioned independently of the engine.
-This engine accepts apiVersion **1** (`SUPPORTED_API_VERSIONS`). Adding optional
-fields, helpers, or step types never bumps apiVersion; it is bumped only on an
-incompatible schema change. A manifest declaring an apiVersion this engine does
-not support fails `zManifest.parse`, so a host that gates on `safeParse` skips it:
-the source is unavailable until the engine (and the host bundling it) is updated.
-
-A manifest that relies on an additive feature declares `minEngineVersion`; an engine
-older than that (`ENGINE_VERSION`) rejects it the same way. A host reading
-`catalog.json` can apply both rules to an entry with `checkManifestCompatibility`
-before fetching the file.
-
+Pre-1.0 (`0.x`): a minor bump may break the API, tagged **BREAKING:** in the changelog. Only exports from the package root are public; deep imports are not.
+The supported manifest `apiVersion` is `1` and `minEngineVersion` gates additive features.
 See [VERSIONING.md](../../VERSIONING.md) for the full policy.
