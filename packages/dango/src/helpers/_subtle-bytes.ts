@@ -1,6 +1,7 @@
 // WebCrypto's typings reject Uint8Array<ArrayBufferLike>; allocating over a
 // concrete ArrayBuffer is the workaround so subtle.* accepts our buffers.
 
+import { base64Decode, base64Encode } from '@bufbuild/protobuf/wire'
 import { Base64DecodeError } from './errors.js'
 
 export function u8(length: number): Uint8Array<ArrayBuffer> {
@@ -10,18 +11,17 @@ export function u8(length: number): Uint8Array<ArrayBuffer> {
 export const ZERO_IV: Uint8Array<ArrayBuffer> = u8(16)
 
 export function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
-  const cleaned = b64.replace(/\s+/g, '')
-  let binary: string
+  let decoded: Uint8Array
   try {
-    binary = atob(cleaned)
+    decoded = base64Decode(b64)
   } catch (cause) {
-    // atob throws a bare DOMException on invalid/odd-length input; wrap it so
-    // callers see a typed engine error with context.
-    throw new Base64DecodeError(cleaned, { cause })
+    throw new Base64DecodeError(b64, { cause })
   }
-  const bytes = u8(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
+  const bytes = u8(decoded.length)
+  bytes.set(decoded)
   return bytes
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  return base64Encode(bytes)
 }

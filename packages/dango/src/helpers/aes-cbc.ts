@@ -1,15 +1,9 @@
-import { base64ToBytes, u8, ZERO_IV } from './_subtle-bytes.js'
+import { base64ToBytes, bytesToBase64, u8, ZERO_IV } from './_subtle-bytes.js'
 
 // WebCrypto doesn't support AES-CBC without PKCS#7 unpad on decrypt. The
 // `padding: 'none'` path synthesizes a trailing block (aesEnc(0x10..0x10 XOR C_n))
 // so subtle's mandatory unpad strips back exactly that synthetic block, leaving
 // the original n blocks intact. Same fix-up-block trick as gateway-decrypt.ts.
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = ''
-  for (const b of bytes) binary += String.fromCharCode(b)
-  return btoa(binary)
-}
 
 const keyCache = new Map<string, Promise<CryptoKey>>()
 
