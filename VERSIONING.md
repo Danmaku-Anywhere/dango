@@ -152,8 +152,8 @@ The descriptions below are the post-`1.0.0` semver model:
 Accepting a newer manifest format is minor. Dropping an old one is major.
 
 **Pre-1.0 (current, `0.x`).** The API is not frozen. Per semver, a `0.MINOR` bump
-(`0.2.0` to `0.3.0`) may carry breaking changes and `0.x.PATCH` carries fixes; a
-`^0.2.0` range resolves to `>=0.2.0 <0.3.0`, so consumers are insulated from the
+(`0.10.0` to `0.11.0`) may carry breaking changes and `0.x.PATCH` carries fixes; a
+`^0.10.0` range resolves to `>=0.10.0 <0.11.0`, so consumers are insulated from the
 next breaking minor until they opt in. Breaking changes are still tagged
 `**BREAKING:**` in `CHANGELOG.md`. The `1.0.0` release will freeze the surface
 below and adopt the major/minor/patch model above.
@@ -208,19 +208,23 @@ above).
    `catalog.json`.
 2. Move the `CHANGELOG.md` `[Unreleased]` entries into a dated `[X.Y.Z]` section.
 3. `bun run check` — confirm the tree is green.
-4. `git commit -am "chore: release vX.Y.Z"` (via a PR, or direct to `main` if
-   unprotected).
-5. Tag the release commit and push: `git tag -a vX.Y.Z -m vX.Y.Z && git push --follow-tags`.
+4. `git commit -am "chore: release vX.Y.Z"` and land it on `main` through a PR,
+   or on a `release/*` branch for a patch release.
+5. Fetch, then tag the commit that actually landed on `origin/main` (or the
+   `release/*` branch), not a local one, and push only that tag:
+   `git fetch origin && git tag -a vX.Y.Z -m vX.Y.Z <landed-sha> && git push origin vX.Y.Z`.
 6. Start the next release on main: `bun run bump X.(Y+1).0-dev` and commit it as
    `chore: start vX.(Y+1).0 development`. Never tag a `-dev` version; the release
    workflow rejects any tag with a prerelease suffix.
 
 Pushing the tag triggers `.github/workflows/release.yml`, which first fails if
-the tag does not match both `package.json` versions, then publishes both packages
+the tagged commit is not on `main` or a `release/*` branch or the tag does not
+match both `package.json` versions, then publishes both packages
 to npm via OIDC trusted publishing (provenance is automatic; no `NPM_TOKEN`).
 Prerequisites are a `release` GitHub environment and a trusted publisher on npm
-for each package. `apiVersion` is independent of the npm version; bump it only on
-an incompatible manifest-format change.
+for each package. GitHub runs the workflow from the tagged revision, so a tag on
+a commit that predates the gate is not checked. After a partial publish, rerun
+the workflow for the same tag; versions already on npm are skipped.
 
 ## Changelog
 

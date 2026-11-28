@@ -63,7 +63,7 @@ Prefer fixing the code over disabling a lint rule. Only silence a rule (or skip 
 
 - `tsc -p tsconfig.build.json` emits ESM + `.d.ts` to `packages/dango/dist`. The package is ESM-only.
 - `exports` points at `dist`; `files` ships only `dist` (engine) / `src/manifests` (manifests).
-- Publishing is manual-version + tag driven: bump the `version` in each package, tag `vX.Y.Z`, push. `.github/workflows/release.yml` checks the commit is on `main`, runs the full check, then runs `npm publish --access public` for both packages under the `@mr-quin` scope using OIDC trusted publishing (no token). See `VERSIONING.md` for the release procedure.
+- Releases are tag driven: follow the release procedure in `VERSIONING.md`.
 - The two version axes are the npm `version` (engine API/semver) and the manifest `apiVersion` (`SUPPORTED_API_VERSIONS`, currently `{1}`). Adding optional manifest fields, helpers, or step types is non-breaking; bump `apiVersion` only on incompatible changes.
 
 The two version axes (engine npm semver and manifest `apiVersion`) and the full release policy, including the pre-1.0 (`0.x`) stability caveat and the public-API surface `1.0.0` will freeze, are documented in `VERSIONING.md` at the repo root, which is the source of truth.

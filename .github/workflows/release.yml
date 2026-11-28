@@ -22,13 +22,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Check the tagged commit is on main
+      - name: Check the tagged commit is on main or a release branch
         run: |
-          git fetch origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
-            echo "::error::$GITHUB_SHA is not on main, refusing to publish it"
-            exit 1
-          }
+          git fetch origin \
+            '+refs/heads/main:refs/remotes/origin/main' \
+            '+refs/heads/release/*:refs/remotes/origin/release/*'
+          for ref in refs/remotes/origin/main $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/release/*'); do
+            if git merge-base --is-ancestor "$GITHUB_SHA" "$ref"; then
+              echo "$GITHUB_SHA is on $ref"
+              exit 0
+            fi
+          done
+          echo "::error::$GITHUB_SHA is not on main or a release/* branch, refusing to publish it"
+          exit 1
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -48,9 +54,9 @@ jobs:
           done
       - run: npm install -g npm@latest # OIDC publishing needs npm >= 11.5.1
       - run: bun install --frozen-lockfile
+      - run: bun run catalog:check
       - run: bun run build
       - run: bun run type-check
-      - run: bun run catalog:check
       - run: bun run lint
       - run: bun run format:check
       - run: bun test
@@ -59,7 +65,15 @@ jobs:
         run: |
           name=$(node -p "require('./package.json').name")
           ver=$(node -p "require('./package.json').version")
-          if [ "$(npm view "$name@$ver" version 2>/dev/null)" = "$ver" ]; then
+          if out=$(npm view "$name@$ver" version 2>&1); then
+            found=$out
+          elif printf '%s' "$out" | grep -q 'E404'; then
+            found=
+          else
+            echo "::error::npm view failed: $out"
+            exit 1
+          fi
+          if [ "$found" = "$ver" ]; then
             echo "$name@$ver is already on npm, skipping"
           else
             npm publish --access public
@@ -69,7 +83,15 @@ jobs:
         run: |
           name=$(node -p "require('./package.json').name")
           ver=$(node -p "require('./package.json').version")
-          if [ "$(npm view "$name@$ver" version 2>/dev/null)" = "$ver" ]; then
+          if out=$(npm view "$name@$ver" version 2>&1); then
+            found=$out
+          elif printf '%s' "$out" | grep -q 'E404'; then
+            found=
+          else
+            echo "::error::npm view failed: $out"
+            exit 1
+          fi
+          if [ "$found" = "$ver" ]; then
             echo "$name@$ver is already on npm, skipping"
           else
             npm publish --access public
