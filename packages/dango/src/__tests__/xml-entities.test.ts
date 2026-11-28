@@ -68,6 +68,24 @@ describe('xml entity decoding', () => {
     expect(result).toEqual([{ p: '&lt;', m: '&#39; &amp;' }])
   })
 
+  it('does not carry an XML 1.1 declaration into the next response', async () => {
+    const bodies = [
+      '<?xml version="1.1"?><i><d p="1">a&#1;b</d></i>',
+      '<i><d p="1">a&#1;b</d></i>',
+    ]
+    let call = 0
+    const { fetcher } = mockFetcher({
+      'https://api.example.com/dm.xml': () => ({ body: bodies[call++] }),
+    })
+    const runner = new ManifestRunner(manifest, { fetcher })
+
+    const first = await runner.runDanmaku({ cid: 1 })
+    const second = await runner.runDanmaku({ cid: 1 })
+
+    expect(first).toEqual([{ p: '1', m: 'a\u0001b' }])
+    expect(second).toEqual([{ p: '1', m: 'ab' }])
+  })
+
   it('leaves HTML named entities as written', async () => {
     const { fetcher } = mockFetcher({
       'https://api.example.com/dm.xml': {

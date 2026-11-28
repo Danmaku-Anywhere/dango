@@ -154,24 +154,31 @@ function checkHost(
   return null
 }
 
-const xmlParser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: '@_',
-  textNodeName: '#text',
-  // Keep scraped text raw: never coerce numeric-looking text/attribute values
-  // to JS numbers. A purely numeric danmaku comment ("666") must stay a string,
-  // and large ids must not lose precision. Manifests use $number where needed.
-  parseAttributeValue: false,
-  parseTagValue: false,
-  trimValues: true,
-  // The parser's own decoder only decodes numeric character references when
-  // htmlEntities is on, which also decodes &nbsp;, &copy; and the rest of the
-  // HTML set. This one knows just the five XML entities plus numeric references.
-  entityDecoder: new EntityDecoder({
-    numericAllowed: true,
-    limit: { maxExpandedLength: 100_000, applyLimitsTo: 'all' },
-  }),
-})
+/**
+ * A fresh parser per document: the entity decoder keeps the XML version from
+ * the last `<?xml?>` declaration it saw, and `reset()` does not clear it.
+ */
+function createXmlParser(): XMLParser {
+  return new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    textNodeName: '#text',
+    // Keep scraped text raw: never coerce numeric-looking text/attribute values
+    // to JS numbers. A purely numeric danmaku comment ("666") must stay a string,
+    // and large ids must not lose precision. Manifests use $number where needed.
+    parseAttributeValue: false,
+    parseTagValue: false,
+    trimValues: true,
+    // The parser's own decoder only decodes numeric character references when
+    // htmlEntities is on, which also decodes &nbsp;, &copy; and the rest of the
+    // HTML set. This one decodes the five XML entities, numeric references and
+    // DOCTYPE-declared entities.
+    entityDecoder: new EntityDecoder({
+      numericAllowed: true,
+      limit: { maxExpandedLength: 100_000, applyLimitsTo: 'all' },
+    }),
+  })
+}
 
 function parseTextBody(format: string, raw: string): unknown {
   switch (format) {
@@ -180,7 +187,7 @@ function parseTextBody(format: string, raw: string): unknown {
       // rather than throwing on `JSON.parse('')`.
       return raw === '' ? null : JSON.parse(raw)
     case 'xml':
-      return raw === '' ? null : xmlParser.parse(raw)
+      return raw === '' ? null : createXmlParser().parse(raw)
     case 'jsonp': {
       if (raw === '') return null
       const jsonpUnwrap = helpers.jsonpUnwrap
